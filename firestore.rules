@@ -1,4 +1,4 @@
-rules_version = '2';
+﻿rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -13,24 +13,24 @@ service cloud.firestore {
     match /users/{uid} {
       allow read, create, update, delete: if isOwner(uid);
 
-      match /progress/{procedureId} {
+      match /progress/{tramiteId} {
         allow read, create, update, delete: if isOwner(uid);
       }
 
-      match /history/{historyId} {
+      match /historial/{historialId} {
         allow read, create, update, delete: if isOwner(uid);
       }
 
-      match /reminders/{reminderId} {
+      match /recordatorios/{reminderId} {
         allow read, create, update, delete: if isOwner(uid);
       }
     }
 
-    match /procedures/{procedureId}/comments/{commentId} {
+    match /tramites/{tramiteId}/comentarios/{commentId} {
       allow read: if true;
       allow create: if isSignedIn()
         && request.resource.data.userId == request.auth.uid
-        && request.resource.data.procedureId == procedureId
+        && request.resource.data.tramiteId == tramiteId
         && request.resource.data.text is string
         && request.resource.data.text.size() > 0
         && request.resource.data.text.size() <= 1000;
@@ -39,3 +39,4 @@ service cloud.firestore {
     }
   }
 }
+
