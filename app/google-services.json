@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "806135933916",
+    "project_id": "asistented-e00c6",
+    "storage_bucket": "asistented-e00c6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:806135933916:android:e4ff1f466e0d65845a7d19",
+        "android_client_info": {
+          "package_name": "com.asistented.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOK75wIpD_DhMLftGk0onkgx2OzkGEv3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,4 +1,4 @@
-package com.example.asistentedv1.ui.theme
+package com.asistented.app.ui.theme
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
