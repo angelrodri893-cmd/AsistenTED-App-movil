@@ -230,13 +230,14 @@ class RepositorioUsuario(
             .limit(30)
             .get()
             .addOnSuccessListener { snapshot ->
-                onResult(
-                    snapshot.documents.mapNotNull { document ->
+                val historial = snapshot.documents
+                    .mapNotNull { document ->
                         val tramiteId = document.getString("tramiteId") ?: return@mapNotNull null
                         val consultedAt = document.getLong("consultadoEnMillis") ?: return@mapNotNull null
                         ElementoHistorial(tramiteId, consultedAt)
                     }
-                )
+                    .distinctBy { it.tramiteId }
+                onResult(historial)
             }
             .addOnFailureListener { onResult(emptyList()) }
     }
@@ -295,6 +296,31 @@ class RepositorioForo(
             .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
+    fun editar(comment: ComentarioForo, nuevoTexto: String, onResult: (Result<Unit>) -> Unit = {}) {
+        db.collection("tramites")
+            .document(comment.tramiteId)
+            .collection("comentarios")
+            .document(comment.id)
+            .update(
+                mapOf(
+                    "text" to nuevoTexto,
+                    "editadoEnMillis" to System.currentTimeMillis()
+                )
+            )
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
+    fun eliminar(comment: ComentarioForo, onResult: (Result<Unit>) -> Unit = {}) {
+        db.collection("tramites")
+            .document(comment.tramiteId)
+            .collection("comentarios")
+            .document(comment.id)
+            .delete()
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
     fun cargar(tramiteId: String, onResult: (List<ComentarioForo>) -> Unit) {
         db.collection("tramites")
             .document(tramiteId)
@@ -310,7 +336,9 @@ class RepositorioForo(
                         val username = document.getString("username") ?: "Usuario"
                         val text = document.getString("text") ?: return@mapNotNull null
                         val createdAt = document.getLong("createdAtMillis") ?: return@mapNotNull null
-                        ComentarioForo(id, tramiteId, userId, username, text, createdAt)
+                        val respuestaAId = document.getString("respuestaAId")
+                        val editadoEnMillis = document.getLong("editadoEnMillis")
+                        ComentarioForo(id, tramiteId, userId, username, text, createdAt, respuestaAId, editadoEnMillis)
                     }
                 )
             }
