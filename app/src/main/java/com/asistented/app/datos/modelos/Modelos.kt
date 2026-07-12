@@ -59,7 +59,9 @@ data class ComentarioForo(
     val userId: String,
     val username: String,
     val text: String,
-    val createdAtMillis: Long
+    val createdAtMillis: Long,
+    val respuestaAId: String? = null,
+    val editadoEnMillis: Long? = null
 )
 
 
