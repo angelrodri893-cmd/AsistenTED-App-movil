@@ -2,9 +2,11 @@
 
 import com.asistented.app.datos.modelos.ElementoHistorial
 import com.asistented.app.datos.modelos.PerfilUsuario
+import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
+import com.asistented.app.interfaz.filtrarTramites
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -65,6 +67,24 @@ class ReglasUsuarioTest {
         )
 
         assertEquals("azul", perfil.avatarId)
+    }
+
+    @Test
+    fun filtrarTramites_buscaPorNombreEInstitucion() {
+        val porNombre = filtrarTramites(CatalogoTramites.tramites, "LICENCIA", null)
+        val porInstitucion = filtrarTramites(CatalogoTramites.tramites, "", "SRI")
+
+        assertEquals(listOf("licencia"), porNombre.map { it.id })
+        assertEquals(listOf("ruc", "impuestos"), porInstitucion.map { it.id })
+    }
+
+    @Test
+    fun filtrarTramites_devuelveTodoOVacioSegunLaConsulta() {
+        val todos = filtrarTramites(CatalogoTramites.tramites, "   ", null)
+        val sinResultados = filtrarTramites(CatalogoTramites.tramites, "tramite inexistente", null)
+
+        assertEquals(CatalogoTramites.tramites, todos)
+        assertTrue(sinResultados.isEmpty())
     }
 }
 

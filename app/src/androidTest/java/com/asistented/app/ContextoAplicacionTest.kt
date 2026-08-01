@@ -2,6 +2,7 @@
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.asistented.app.datos.PreferenciasLocales
 
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,6 +20,23 @@ class ContextoAplicacionTest {
     fun usaContextoDeLaAplicacion() {
         val contextoAplicacion = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("com.asistented.app", contextoAplicacion.packageName)
+    }
+
+    @Test
+    fun ayudaPrincipal_seMantieneHastaQueElUsuarioLaComplete() {
+        val contextoAplicacion = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferencias = PreferenciasLocales(contextoAplicacion)
+        val uidPrueba = "usuario_prueba_ayuda_principal"
+
+        preferencias.completarAyudaPrincipal(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaPrincipal(uidPrueba))
+
+        preferencias.marcarAyudaPrincipalPendiente(uidPrueba)
+        assertTrue(PreferenciasLocales(contextoAplicacion).debeMostrarAyudaPrincipal(uidPrueba))
+
+        preferencias.completarAyudaPrincipal(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaPrincipal(uidPrueba))
+        assertFalse(preferencias.debeMostrarAyudaPrincipal(""))
     }
 }
 

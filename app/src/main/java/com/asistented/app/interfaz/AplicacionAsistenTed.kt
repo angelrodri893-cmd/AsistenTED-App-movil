@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.speech.tts.TextToSpeech
+import androidx.annotation.DrawableRes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -41,21 +42,16 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Accessibility
-import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Forum
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -76,6 +72,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -100,6 +97,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
@@ -176,6 +174,8 @@ class ControladorAsistenTed(context: Context) {
         private set
     var mensaje by mutableStateOf<String?>(null)
         private set
+    var mostrarAyudaPrincipal by mutableStateOf(false)
+        private set
 
     init {
         repositorioAutenticacion.usuarioActual { perfil ->
@@ -193,6 +193,7 @@ class ControladorAsistenTed(context: Context) {
 
     fun entrarComoInvitado() {
         usuarioActual = repositorioAutenticacion.perfilInvitado().copy(accessibility = configuracionAccesibilidad)
+        mostrarAyudaPrincipal = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -229,6 +230,7 @@ class ControladorAsistenTed(context: Context) {
             cargando = false
             result
                 .onSuccess {
+                    preferenciasLocales.marcarAyudaPrincipalPendiente(it.uid)
                     establecerUsuarioRegistrado(it)
                     mensaje = "Cuenta creada correctamente."
                 }
@@ -264,11 +266,18 @@ class ControladorAsistenTed(context: Context) {
     fun cerrarSesion() {
         repositorioAutenticacion.cerrarSesion()
         usuarioActual = null
+        mostrarAyudaPrincipal = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
         pasosCompletados.clear()
         comentarios.clear()
+    }
+
+    fun descartarAyudaPrincipal() {
+        val user = usuarioActual?.takeIf { !it.esInvitado } ?: return
+        preferenciasLocales.completarAyudaPrincipal(user.uid)
+        mostrarAyudaPrincipal = false
     }
 
     fun actualizarAccesibilidad(configuracion: ConfiguracionAccesibilidad) {
@@ -441,6 +450,7 @@ class ControladorAsistenTed(context: Context) {
     private fun establecerUsuarioRegistrado(perfil: PerfilUsuario) {
         val usuarioRegistrado = perfil.copy(accessibility = configuracionAccesibilidad)
         usuarioActual = usuarioRegistrado
+        mostrarAyudaPrincipal = preferenciasLocales.debeMostrarAyudaPrincipal(usuarioRegistrado.uid)
         cargarDatosPersistidos(usuarioRegistrado.uid)
     }
 
@@ -568,7 +578,28 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 .ocultarTecladoAlTocarFuera()
         ) {
             composable(Rutas.HOME) {
-                PantallaInicio(controlador, navController)
+                PantallaPrincipal(
+                    nombreUsuario = controlador.usuarioActual?.nombreVisible.orEmpty(),
+                    tramites = controlador.tramites,
+                    favoritos = controlador.favoritos.toSet(),
+                    mostrarAvisoInicial = controlador.mostrarAyudaPrincipal,
+                    textoGrande = controlador.configuracionAccesibilidad.textoGrande,
+                    onAbrirTramite = { tramite ->
+                        controlador.marcarConsultado(tramite.id)
+                        navController.navigate(Rutas.detail(tramite.id))
+                    },
+                    onAlternarFavorito = { tramite ->
+                        controlador.alternarFavorito(tramite.id)
+                    },
+                    onAbrirPerfil = {
+                        navController.navigate(Rutas.PROFILE) {
+                            popUpTo(Rutas.HOME) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onDescartarAviso = controlador::descartarAyudaPrincipal
+                )
             }
             composable(
                 route = Rutas.DETAIL,
@@ -1424,70 +1455,6 @@ private fun PreviewPantallaBienvenida() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PantallaInicio(controlador: ControladorAsistenTed, navController: NavHostController) {
-    var query by remember { mutableStateOf("") }
-    var selectedInstitution by remember { mutableStateOf("Todas") }
-    val institutions = listOf("Todas") + controlador.tramites.map { it.institution }.distinct()
-    val filtered = controlador.tramites.filter {
-        (selectedInstitution == "Todas" || it.institution == selectedInstitution) &&
-            (query.isBlank() || it.title.contains(query, ignoreCase = true) || it.institution.contains(query, ignoreCase = true))
-    }
-
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(
-                    "Hola, ${controlador.usuarioActual?.nombreVisible ?: "Anónimo"}",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
-                )
-                Text("Elige un trámite para guiarte paso a paso.", style = MaterialTheme.typography.bodySmall)
-            }
-        }
-        item {
-            CampoEntrada(
-                valor = query,
-                alCambiar = { query = it },
-                etiqueta = "Buscar trámite",
-                ayuda = "Puedes buscar por nombre o institución.",
-                accionIme = ImeAction.Search,
-                iconoInicial = { Icon(Icons.Default.Search, contentDescription = null) },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                institutions.take(3).forEach { institution ->
-                    FilterChip(
-                        selected = selectedInstitution == institution,
-                        onClick = { selectedInstitution = institution },
-                        label = { Text(institution, maxLines = 1, overflow = TextOverflow.Ellipsis) }
-                    )
-                }
-            }
-        }
-        items(filtered, key = { it.id }) { procedure ->
-            TarjetaTramite(
-                procedure = procedure,
-                isFavorite = controlador.favoritos.contains(procedure.id),
-                onFavorite = { controlador.alternarFavorito(procedure.id) },
-                onOpen = {
-                    controlador.marcarConsultado(procedure.id)
-                    navController.navigate(Rutas.detail(procedure.id))
-                },
-                textoGrande = controlador.configuracionAccesibilidad.textoGrande
-            )
-        }
-    }
-}
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
 private fun PantallaDetalleTramite(
     controlador: ControladorAsistenTed,
     procedure: Tramite,
@@ -2269,14 +2236,16 @@ private fun BarraInferiorPrincipal(navController: NavHostController) {
     val entry by navController.currentBackStackEntryAsState()
     val current = entry?.destination?.route.orEmpty()
     val items = listOf(
-        ElementoBarraInferior(Rutas.HOME, "Inicio", Icons.Default.Home),
-        ElementoBarraInferior(Rutas.FAVORITES, "Favoritos", Icons.Default.Bookmark),
-        ElementoBarraInferior(Rutas.HISTORY, "Historial", Icons.Default.History),
-        ElementoBarraInferior(Rutas.REMINDERS, "Avisos", Icons.Default.Notifications),
-        ElementoBarraInferior(Rutas.PROFILE, "Perfil", Icons.Default.AccountCircle),
-        ElementoBarraInferior(Rutas.ACCESSIBILITY, "Acceso", Icons.Default.Accessibility)
+        ElementoBarraInferior(Rutas.HOME, stringResource(R.string.nav_home), R.drawable.ic_nav_inicio),
+        ElementoBarraInferior(Rutas.FAVORITES, stringResource(R.string.nav_favorites), R.drawable.ic_nav_favoritos),
+        ElementoBarraInferior(Rutas.REMINDERS, stringResource(R.string.nav_notifications), R.drawable.ic_nav_notificacion),
+        ElementoBarraInferior(Rutas.PROFILE, stringResource(R.string.nav_profile), R.drawable.ic_nav_perfil)
     )
-    NavigationBar {
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.secondary,
+        contentColor = MaterialTheme.colorScheme.onSecondary,
+        tonalElevation = 0.dp
+    ) {
         items.forEach { item ->
             NavigationBarItem(
                 selected = current == item.route,
@@ -2287,8 +2256,28 @@ private fun BarraInferiorPrincipal(navController: NavHostController) {
                         restoreState = true
                     }
                 },
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label, maxLines = 1) }
+                icon = {
+                    Image(
+                        painter = painterResource(item.iconRes),
+                        contentDescription = item.label,
+                        modifier = Modifier.size(24.dp),
+                        colorFilter = ColorFilter.tint(
+                            if (current == item.route) {
+                                MaterialTheme.colorScheme.onSecondary
+                            } else {
+                                MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.72f)
+                            }
+                        )
+                    )
+                },
+                label = { Text(item.label, maxLines = 1) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondary,
+                    selectedTextColor = MaterialTheme.colorScheme.onSecondary,
+                    indicatorColor = Color.Transparent,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.72f),
+                    unselectedTextColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.72f)
+                )
             )
         }
     }
@@ -2297,7 +2286,7 @@ private fun BarraInferiorPrincipal(navController: NavHostController) {
 private data class ElementoBarraInferior(
     val route: String,
     val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
+    @param:DrawableRes val iconRes: Int
 )
 
 private object Rutas {

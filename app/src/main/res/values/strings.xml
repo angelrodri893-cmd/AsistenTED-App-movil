@@ -32,4 +32,28 @@
     <string name="cd_mostrar_password">Mostrar contrase&#241;a</string>
     <string name="cd_ocultar_password">Ocultar contrase&#241;a</string>
     <string name="cd_aviso_anonimo">Aviso de ingreso an&#243;nimo</string>
+
+    <string name="home_greeting">Hola,</string>
+    <string name="home_search_placeholder">Buscar</string>
+    <string name="home_search_error">No encontramos tr&#225;mites que coincidan.</string>
+    <string name="home_filter_all">Todos</string>
+    <string name="home_filter_registro_civil">Registro Civil</string>
+    <string name="home_filter_sri">SRI</string>
+    <string name="home_filter_ant">ANT</string>
+    <string name="home_view_guide">Ver gu&#237;a</string>
+    <string name="home_empty_results">Prueba con otro nombre o selecciona una instituci&#243;n diferente.</string>
+    <string name="home_welcome_help">Para ver las gu&#237;as presiona el bot&#243;n Ver gu&#237;a. Para buscar por instituci&#243;n, selecciona uno de los botones debajo de la barra de b&#250;squeda.</string>
+    <string name="home_do_not_remind">NO VOLVER A RECORDAR</string>
+    <string name="home_cd_open_profile">Abrir perfil</string>
+    <string name="home_cd_search">Buscar tr&#225;mites</string>
+    <string name="home_cd_procedure_illustration">Imagen del tr&#225;mite %1$s</string>
+    <string name="home_cd_add_favorite">Agregar a favoritos</string>
+    <string name="home_cd_remove_favorite">Quitar de favoritos</string>
+    <string name="home_cd_no_results">Sin resultados</string>
+    <string name="home_cd_welcome_help">Ayuda para usar la pantalla principal</string>
+
+    <string name="nav_home">Inicio</string>
+    <string name="nav_favorites">Favoritos</string>
+    <string name="nav_notifications">Notificaci&#243;n</string>
+    <string name="nav_profile">Perfil</string>
 </resources>
