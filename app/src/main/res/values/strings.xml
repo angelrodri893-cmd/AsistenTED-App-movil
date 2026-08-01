@@ -1,3 +1,35 @@
 <resources>
     <string name="app_name">AsistenTED</string>
+    <string name="auth_bienvenida">Bienvenido a\nAsistenTED</string>
+    <string name="auth_iniciar_sesion">INICIAR SESION</string>
+    <string name="auth_registrarse">REGISTRARSE</string>
+    <string name="auth_nombre">Nombre</string>
+    <string name="auth_apellido">Apellido</string>
+    <string name="auth_usuario">Usuario</string>
+    <string name="auth_password">Contrase&#241;a</string>
+    <string name="auth_repetir_password">Repetir Contrase&#241;a</string>
+    <string name="auth_ingresar_anonimo">Ingresar como an&#243;nimo</string>
+    <string name="auth_continuar">CONTINUAR</string>
+    <string name="auth_volver">VOLVER</string>
+    <string name="auth_aviso_anonimo">Recuerde que al ingresar como an&#243;nimo funciones como recordatorios, favoritos y personalizaci&#243;n de perfil no estar&#225;n disponibles</string>
+    <string name="auth_error_usuario_vacio">Ingresa un usuario.</string>
+    <string name="auth_error_usuario_invalido">Usa 3 a 24 caracteres: letras, n&#250;meros, punto, guion o guion bajo.</string>
+    <string name="auth_error_usuario_repetido">Este usuario ya est&#225; registrado.</string>
+    <string name="auth_error_nombre_vacio">Ingresa tu nombre.</string>
+    <string name="auth_error_apellido_vacio">Ingresa tu apellido.</string>
+    <string name="auth_error_password_vacia">Ingresa tu contrase&#241;a.</string>
+    <string name="auth_error_password_corta">La contrase&#241;a debe tener al menos 6 caracteres.</string>
+    <string name="auth_error_confirmacion_vacia">Repite tu contrase&#241;a.</string>
+    <string name="auth_error_confirmacion_diferente">Las contrase&#241;as no coinciden.</string>
+    <string name="auth_error_login">Usuario o contrase&#241;a incorrectos.</string>
+    <string name="auth_error_registro">No se pudo crear la cuenta. Revisa tu conexi&#243;n o la configuraci&#243;n de Firebase.</string>
+    <string name="cd_logo_tramite_ecuador">Logo de Tr&#225;mite Ecuador</string>
+    <string name="cd_logo_asistented">Logo de AsistenTED</string>
+    <string name="cd_icono_nombre">Icono de nombre</string>
+    <string name="cd_icono_apellido">Icono de apellido</string>
+    <string name="cd_icono_usuario">Icono de usuario</string>
+    <string name="cd_icono_password">Icono de contrase&#241;a</string>
+    <string name="cd_mostrar_password">Mostrar contrase&#241;a</string>
+    <string name="cd_ocultar_password">Ocultar contrase&#241;a</string>
+    <string name="cd_aviso_anonimo">Aviso de ingreso an&#243;nimo</string>
 </resources>
