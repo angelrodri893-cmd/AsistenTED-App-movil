@@ -1,4 +1,4 @@
-package com.asistented.app.interfaz
+﻿package com.asistented.app.interfaz
 
 import android.Manifest
 import android.content.Context
@@ -10,21 +10,27 @@ import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -44,13 +50,19 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInBrowser
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CenterAlignedTopAppBar
@@ -66,6 +78,7 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -85,17 +98,24 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -104,6 +124,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.asistented.app.R
 import com.asistented.app.datos.RepositorioAutenticacion
 import com.asistented.app.datos.RepositorioForo
 import com.asistented.app.datos.PreferenciasLocales
@@ -118,7 +139,11 @@ import com.asistented.app.datos.modelos.PerfilUsuario
 import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
+import com.asistented.app.interfaz.tema.TemaAsistenTED
 import com.asistented.app.notificaciones.ProgramadorRecordatorios
+import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDateTime
@@ -174,7 +199,25 @@ class ControladorAsistenTed(context: Context) {
         mensaje = "Entraste como anónimo. Puedes ver guías, pero algunas funciones se guardan solo con cuenta."
     }
 
-    fun registrar(username: String, nombre: String, apellido: String, password: String, confirmation: String) {
+    fun verificarUsuarioDisponible(username: String, onResult: (Result<Boolean>) -> Unit) {
+        repositorioUsuario.existeUsername(username) { result ->
+            result
+                .onSuccess { existe -> onResult(Result.success(!existe)) }
+                .onFailure {
+                    mensaje = it.comoMensajeUsuario("No se pudo verificar el usuario.")
+                    onResult(Result.failure(it))
+                }
+        }
+    }
+
+    fun registrar(
+        username: String,
+        nombre: String,
+        apellido: String,
+        password: String,
+        confirmation: String,
+        onError: (Throwable) -> Unit = {}
+    ) {
         val usernameError = ReglasAutenticacion.validarUsuario(username)
         val passwordError = ReglasAutenticacion.validarContrasena(password, confirmation)
         if (usernameError != null || passwordError != null) {
@@ -189,11 +232,14 @@ class ControladorAsistenTed(context: Context) {
                     establecerUsuarioRegistrado(it)
                     mensaje = "Cuenta creada correctamente."
                 }
-                .onFailure { mensaje = it.comoMensajeUsuario("No se pudo crear la cuenta.") }
+                .onFailure {
+                    mensaje = it.comoMensajeUsuario("No se pudo crear la cuenta.")
+                    onError(it)
+                }
         }
     }
 
-    fun iniciarSesion(username: String, password: String) {
+    fun iniciarSesion(username: String, password: String, onError: (Throwable) -> Unit = {}) {
         val usernameError = ReglasAutenticacion.validarUsuario(username)
         val passwordError = ReglasAutenticacion.validarContrasena(password)
         if (usernameError != null || passwordError != null) {
@@ -208,7 +254,10 @@ class ControladorAsistenTed(context: Context) {
                     establecerUsuarioRegistrado(it)
                     mensaje = "Sesión iniciada."
                 }
-                .onFailure { mensaje = it.comoMensajeUsuario("Usuario o contraseña incorrectos.") }
+                .onFailure {
+                    mensaje = it.comoMensajeUsuario("Usuario o contraseña incorrectos.")
+                    onError(it)
+                }
         }
     }
 
@@ -426,6 +475,14 @@ private fun Throwable.comoMensajeUsuario(defaultMessage: String): String {
     }
 }
 
+private fun Throwable.esUsuarioDuplicadoEnAuth(): Boolean {
+    val raw = (localizedMessage ?: message).orEmpty()
+    return this is FirebaseAuthUserCollisionException ||
+        (this as? FirebaseAuthException)?.errorCode == "ERROR_EMAIL_ALREADY_IN_USE" ||
+        raw.contains("email address is already in use", ignoreCase = true) ||
+        raw.contains("already in use", ignoreCase = true)
+}
+
 @Composable
 private fun Modifier.ocultarTecladoAlTocarFuera(): Modifier {
     val focusManager = LocalFocusManager.current
@@ -491,7 +548,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
 
     if (controlador.usuarioActual == null) {
         Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
-            PantallaAutenticacion(
+            PantallaAutenticacionDisenada(
                 controlador = controlador,
                 modifier = Modifier.padding(padding)
             )
@@ -556,108 +613,815 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
     }
 }
 
+private enum class ModoAutenticacion {
+    InicioSesion,
+    Registro
+}
+
+private val AuthYellow = Color(0xFFFFCC00)
+private val AuthYellowSoft = Color(0xFFFFEFA3)
+private val AuthNavy = Color(0xFF14213D)
+private val AuthMuted = Color(0xFFE9E5DC)
+private val AuthCoral = Color(0xFFFF6B63)
+private val AuthError = Color(0xFFE53935)
+private val AuthBlueWave = Color(0xFF5659D9)
+private val AuthRedWave = Color(0xFFE25261)
+
 @Composable
-private fun PantallaAutenticacion(controlador: ControladorAsistenTed, modifier: Modifier = Modifier) {
-    var registerMode by remember { mutableStateOf(false) }
+private fun PantallaAutenticacionDisenada(controlador: ControladorAsistenTed, modifier: Modifier = Modifier) {
+    var mostrarBienvenida by remember { mutableStateOf(true) }
+    var modo by remember { mutableStateOf(ModoAutenticacion.InicioSesion) }
     var username by remember { mutableStateOf("") }
     var nombre by remember { mutableStateOf("") }
     var apellido by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmation by remember { mutableStateOf("") }
+    var mostrarAvisoAnonimo by remember { mutableStateOf(false) }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmationVisible by remember { mutableStateOf(false) }
+    var verificandoUsuario by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-        Text("AsistenTED", style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
-        Text(
-            "Guía sencilla para trámites digitales del Ecuador.",
-            style = cuerpoLegible(controlador)
-        )
-        TarjetaAviso(
-            title = "Puedes entrar sin cuenta",
-            text = "Como anónimo podrás revisar las guías. Para guardar favoritos, historial, perfil, foro y recordatorios necesitas registrarte."
-        )
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !registerMode, onClick = { registerMode = false }, label = { Text("Iniciar sesión") })
-            FilterChip(selected = registerMode, onClick = { registerMode = true }, label = { Text("Registrarme") })
+    var usernameError by remember { mutableStateOf<String?>(null) }
+    var nombreError by remember { mutableStateOf<String?>(null) }
+    var apellidoError by remember { mutableStateOf<String?>(null) }
+    var passwordError by remember { mutableStateOf<String?>(null) }
+    var confirmationError by remember { mutableStateOf<String?>(null) }
+    var loginError by remember { mutableStateOf<String?>(null) }
+
+    val errorUsuarioVacio = stringResource(R.string.auth_error_usuario_vacio)
+    val errorUsuarioInvalido = stringResource(R.string.auth_error_usuario_invalido)
+    val errorUsuarioRepetido = stringResource(R.string.auth_error_usuario_repetido)
+    val errorNombreVacio = stringResource(R.string.auth_error_nombre_vacio)
+    val errorApellidoVacio = stringResource(R.string.auth_error_apellido_vacio)
+    val errorPasswordVacia = stringResource(R.string.auth_error_password_vacia)
+    val errorPasswordCorta = stringResource(R.string.auth_error_password_corta)
+    val errorConfirmacionVacia = stringResource(R.string.auth_error_confirmacion_vacia)
+    val errorConfirmacionDiferente = stringResource(R.string.auth_error_confirmacion_diferente)
+    val errorLogin = stringResource(R.string.auth_error_login)
+    val errorRegistro = stringResource(R.string.auth_error_registro)
+
+    LaunchedEffect(Unit) {
+        delay(1400)
+        mostrarBienvenida = false
+    }
+
+    fun validarUsuarioLocal(): String? {
+        val normalized = ReglasAutenticacion.normalizarUsuario(username)
+        return when {
+            normalized.isBlank() -> errorUsuarioVacio
+            ReglasAutenticacion.validarUsuario(username) != null -> errorUsuarioInvalido
+            else -> null
         }
-        if (registerMode) {
-            CampoEntrada(
-                valor = nombre,
-                alCambiar = { nombre = it },
-                etiqueta = "Nombre",
-                ayuda = "Escribe cómo quieres que te saludemos.",
-                accionIme = ImeAction.Next,
-                modifier = Modifier.fillMaxWidth()
-            )
-            CampoEntrada(
-                valor = apellido,
-                alCambiar = { apellido = it },
-                etiqueta = "Apellido",
-                accionIme = ImeAction.Next,
-                modifier = Modifier.fillMaxWidth()
-            )
+    }
+
+    fun validarPasswordLocal(): String? {
+        return when {
+            password.isBlank() -> errorPasswordVacia
+            password.length < 6 -> errorPasswordCorta
+            else -> null
         }
-        CampoEntrada(
-            valor = username,
-            alCambiar = { username = it },
-            etiqueta = "Nombre de usuario",
-            ayuda = "No necesitas correo ni número de teléfono.",
-            accionIme = ImeAction.Next,
-            modifier = Modifier.fillMaxWidth()
-        )
-        CampoEntrada(
-            valor = password,
-            alCambiar = { password = it },
-            etiqueta = "Contraseña",
-            transformacionVisual = PasswordVisualTransformation(),
-            tipoTeclado = KeyboardType.Password,
-            ayuda = "Mínimo 6 caracteres.",
-            accionIme = if (registerMode) ImeAction.Next else ImeAction.Done,
-            modifier = Modifier.fillMaxWidth()
-        )
-        if (registerMode) {
-            CampoEntrada(
-                valor = confirmation,
-                alCambiar = { confirmation = it },
-                etiqueta = "Confirmar contraseña",
-                transformacionVisual = PasswordVisualTransformation(),
-                tipoTeclado = KeyboardType.Password,
-                modifier = Modifier.fillMaxWidth()
-            )
+    }
+
+    fun limpiarErroresDeFormulario() {
+        usernameError = null
+        nombreError = null
+        apellidoError = null
+        passwordError = null
+        confirmationError = null
+        loginError = null
+    }
+
+    fun enviarInicioSesion() {
+        usernameError = validarUsuarioLocal()
+        passwordError = validarPasswordLocal()
+        confirmationError = null
+        loginError = null
+        if (usernameError != null || passwordError != null) return
+
+        controlador.iniciarSesion(username, password) {
+            loginError = errorLogin
         }
-        Button(
-            onClick = {
-                if (registerMode) {
-                    controlador.registrar(username, nombre, apellido, password, confirmation)
+    }
+
+    fun enviarRegistro() {
+        usernameError = validarUsuarioLocal()
+        nombreError = if (nombre.isBlank()) errorNombreVacio else null
+        apellidoError = if (apellido.isBlank()) errorApellidoVacio else null
+        passwordError = validarPasswordLocal()
+        confirmationError = when {
+            confirmation.isBlank() -> errorConfirmacionVacia
+            confirmation != password -> errorConfirmacionDiferente
+            else -> null
+        }
+        loginError = null
+        if (
+            usernameError != null ||
+            nombreError != null ||
+            apellidoError != null ||
+            passwordError != null ||
+            confirmationError != null
+        ) return
+
+        fun registrarConFirebaseAuth() {
+            controlador.registrar(username, nombre, apellido, password, confirmation) { error ->
+                usernameError = if (error.esUsuarioDuplicadoEnAuth()) {
+                    errorUsuarioRepetido
                 } else {
-                    controlador.iniciarSesion(username, password)
+                    errorRegistro
                 }
-            },
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(8.dp),
-            enabled = !controlador.cargando
-        ) {
-            if (controlador.cargando) {
-                CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
-            } else {
-                Text(if (registerMode) "Crear cuenta" else "Entrar")
             }
         }
-        OutlinedButton(
-            onClick = controlador::entrarComoInvitado,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Continuar como anónimo")
+
+        verificandoUsuario = true
+        controlador.verificarUsuarioDisponible(username) { resultadoDisponibilidad ->
+            verificandoUsuario = false
+            resultadoDisponibilidad
+                .onSuccess { disponible ->
+                    if (disponible) {
+                        registrarConFirebaseAuth()
+                    } else {
+                        usernameError = errorUsuarioRepetido
+                    }
+                }
+                .onFailure {
+                    registrarConFirebaseAuth()
+                }
+            }
+    }
+
+    if (mostrarBienvenida) {
+        PantallaBienvenidaAsistenTED(modifier = modifier)
+        return
+    }
+
+    val cargando = controlador.cargando || verificandoUsuario
+    Box(modifier = modifier.fillMaxSize()) {
+        PantallaAutenticacionContenido(
+            modo = modo,
+            username = username,
+            nombre = nombre,
+            apellido = apellido,
+            password = password,
+            confirmation = confirmation,
+            usernameError = usernameError,
+            nombreError = nombreError,
+            apellidoError = apellidoError,
+            passwordError = passwordError,
+            confirmationError = confirmationError,
+            loginError = loginError,
+            cargando = cargando,
+            passwordVisible = passwordVisible,
+            confirmationVisible = confirmationVisible,
+            onModoChange = {
+                modo = it
+                limpiarErroresDeFormulario()
+            },
+            onUsernameChange = {
+                username = it
+                usernameError = null
+                loginError = null
+            },
+            onNombreChange = {
+                nombre = it
+                nombreError = null
+            },
+            onApellidoChange = {
+                apellido = it
+                apellidoError = null
+            },
+            onPasswordChange = {
+                password = it
+                passwordError = null
+                confirmationError = null
+                loginError = null
+            },
+            onConfirmationChange = {
+                confirmation = it
+                confirmationError = null
+            },
+            onPasswordVisibilityChange = { passwordVisible = !passwordVisible },
+            onConfirmationVisibilityChange = { confirmationVisible = !confirmationVisible },
+            onPrimaryClick = {
+                if (modo == ModoAutenticacion.Registro) enviarRegistro() else enviarInicioSesion()
+            },
+            onAnonymousClick = { mostrarAvisoAnonimo = true },
+            modifier = Modifier.blur(if (mostrarAvisoAnonimo) 4.dp else 0.dp)
+        )
+
+        if (mostrarAvisoAnonimo) {
+            AvisoIngresoAnonimo(
+                onContinuar = {
+                    mostrarAvisoAnonimo = false
+                    controlador.entrarComoInvitado()
+                },
+                onVolver = { mostrarAvisoAnonimo = false },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
         }
     }
 }
+
+@Composable
+private fun PantallaAutenticacionContenido(
+    modo: ModoAutenticacion,
+    username: String,
+    nombre: String,
+    apellido: String,
+    password: String,
+    confirmation: String,
+    usernameError: String?,
+    nombreError: String?,
+    apellidoError: String?,
+    passwordError: String?,
+    confirmationError: String?,
+    loginError: String?,
+    cargando: Boolean,
+    passwordVisible: Boolean,
+    confirmationVisible: Boolean,
+    onModoChange: (ModoAutenticacion) -> Unit,
+    onUsernameChange: (String) -> Unit,
+    onNombreChange: (String) -> Unit,
+    onApellidoChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onConfirmationChange: (String) -> Unit,
+    onPasswordVisibilityChange: () -> Unit,
+    onConfirmationVisibilityChange: () -> Unit,
+    onPrimaryClick: () -> Unit,
+    onAnonymousClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        val compact = maxHeight < 720.dp
+        val horizontalPadding = if (maxWidth < 360.dp) 24.dp else 38.dp
+        val logoWidth = if (compact) 220.dp else 248.dp
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .imePadding()
+                .verticalScroll(rememberScrollState())
+                .padding(
+                    start = horizontalPadding,
+                    end = horizontalPadding,
+                    top = if (compact) 24.dp else 72.dp,
+                    bottom = 24.dp
+                ),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(if (compact) 12.dp else 16.dp)
+        ) {
+            Image(
+                painter = painterResource(R.drawable.logo_principal),
+                contentDescription = stringResource(R.string.cd_logo_tramite_ecuador),
+                modifier = Modifier
+                    .widthIn(max = logoWidth)
+                    .fillMaxWidth()
+                    .height(if (compact) 92.dp else 116.dp)
+            )
+
+            Spacer(Modifier.height(if (compact) 8.dp else 22.dp))
+
+            SelectorModoAutenticacion(
+                modo = modo,
+                onModoChange = onModoChange,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 360.dp)
+            )
+
+            Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
+
+            if (modo == ModoAutenticacion.Registro) {
+                CampoAutenticacion(
+                    valor = nombre,
+                    alCambiar = onNombreChange,
+                    placeholder = stringResource(R.string.auth_nombre),
+                    contentDescriptionIcono = stringResource(R.string.cd_icono_nombre),
+                    icono = Icons.Default.Person,
+                    error = nombreError,
+                    accionIme = ImeAction.Next,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                CampoAutenticacion(
+                    valor = apellido,
+                    alCambiar = onApellidoChange,
+                    placeholder = stringResource(R.string.auth_apellido),
+                    contentDescriptionIcono = stringResource(R.string.cd_icono_apellido),
+                    icono = Icons.Default.Person,
+                    error = apellidoError,
+                    accionIme = ImeAction.Next,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            CampoAutenticacion(
+                valor = username,
+                alCambiar = onUsernameChange,
+                placeholder = stringResource(R.string.auth_usuario),
+                contentDescriptionIcono = stringResource(R.string.cd_icono_usuario),
+                icono = Icons.Default.Person,
+                error = usernameError,
+                accionIme = ImeAction.Next,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            CampoPasswordAutenticacion(
+                valor = password,
+                alCambiar = onPasswordChange,
+                placeholder = stringResource(R.string.auth_password),
+                visible = passwordVisible,
+                alAlternarVisibilidad = onPasswordVisibilityChange,
+                error = passwordError,
+                accionIme = if (modo == ModoAutenticacion.Registro) ImeAction.Next else ImeAction.Done,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (modo == ModoAutenticacion.Registro) {
+                CampoPasswordAutenticacion(
+                    valor = confirmation,
+                    alCambiar = onConfirmationChange,
+                    placeholder = stringResource(R.string.auth_repetir_password),
+                    visible = confirmationVisible,
+                    alAlternarVisibilidad = onConfirmationVisibilityChange,
+                    error = confirmationError,
+                    accionIme = ImeAction.Done,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (loginError != null) {
+                Text(
+                    text = loginError,
+                    color = AuthError,
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 16.dp)
+                )
+            }
+
+            Spacer(Modifier.height(if (compact) 4.dp else 8.dp))
+
+            BotonAccionAutenticacion(
+                texto = if (modo == ModoAutenticacion.Registro) {
+                    stringResource(R.string.auth_registrarse)
+                } else {
+                    stringResource(R.string.auth_iniciar_sesion)
+                },
+                cargando = cargando,
+                onClick = onPrimaryClick,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            if (modo == ModoAutenticacion.InicioSesion) {
+                BotonAnonimoAutenticacion(
+                    onClick = onAnonymousClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SelectorModoAutenticacion(
+    modo: ModoAutenticacion,
+    onModoChange: (ModoAutenticacion) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        BotonModoAutenticacion(
+            texto = stringResource(R.string.auth_iniciar_sesion),
+            seleccionado = modo == ModoAutenticacion.InicioSesion,
+            onClick = { onModoChange(ModoAutenticacion.InicioSesion) },
+            modifier = Modifier.weight(1f)
+        )
+        BotonModoAutenticacion(
+            texto = stringResource(R.string.auth_registrarse),
+            seleccionado = modo == ModoAutenticacion.Registro,
+            onClick = { onModoChange(ModoAutenticacion.Registro) },
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun BotonModoAutenticacion(
+    texto: String,
+    seleccionado: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(38.dp),
+        shape = RoundedCornerShape(6.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (seleccionado) AuthYellow else AuthMuted,
+            contentColor = AuthNavy
+        ),
+        elevation = ButtonDefaults.buttonElevation(
+            defaultElevation = if (seleccionado) 5.dp else 0.dp,
+            pressedElevation = 1.dp
+        ),
+        contentPadding = PaddingValues(horizontal = 8.dp)
+    ) {
+        Text(text = texto, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+    }
+}
+
+@Composable
+private fun CampoAutenticacion(
+    valor: String,
+    alCambiar: (String) -> Unit,
+    placeholder: String,
+    contentDescriptionIcono: String,
+    icono: androidx.compose.ui.graphics.vector.ImageVector,
+    error: String?,
+    modifier: Modifier = Modifier,
+    accionIme: ImeAction = ImeAction.Done,
+    tipoTeclado: KeyboardType = KeyboardType.Text,
+    transformacionVisual: VisualTransformation = VisualTransformation.None,
+    trailingIcon: (@Composable () -> Unit)? = null
+) {
+    val focusManager = LocalFocusManager.current
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        OutlinedTextField(
+            value = valor,
+            onValueChange = { alCambiar(it.replace("\n", " ")) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(54.dp),
+            placeholder = {
+                Text(
+                    text = placeholder,
+                    color = AuthNavy.copy(alpha = 0.62f),
+                    fontSize = 12.sp
+                )
+            },
+            leadingIcon = {
+                Icon(
+                    imageVector = icono,
+                    contentDescription = contentDescriptionIcono,
+                    tint = if (error != null) AuthError else AuthYellow,
+                    modifier = Modifier.size(20.dp)
+                )
+            },
+            trailingIcon = trailingIcon,
+            singleLine = true,
+            isError = error != null,
+            shape = RoundedCornerShape(50.dp),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+            keyboardOptions = KeyboardOptions(
+                keyboardType = tipoTeclado,
+                imeAction = accionIme
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = { focusManager.clearFocus() },
+                onNext = { focusManager.clearFocus() }
+            ),
+            visualTransformation = transformacionVisual,
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedBorderColor = AuthYellow,
+                unfocusedBorderColor = AuthNavy,
+                errorBorderColor = AuthError,
+                focusedContainerColor = Color.Transparent,
+                unfocusedContainerColor = Color.Transparent,
+                errorContainerColor = Color.Transparent,
+                cursorColor = AuthNavy,
+                focusedTextColor = AuthNavy,
+                unfocusedTextColor = AuthNavy,
+                errorTextColor = AuthNavy
+            )
+        )
+        if (error != null) {
+            Text(
+                text = error,
+                color = AuthError,
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(start = 18.dp)
+            )
+        }
+    }
+}
+
+@Composable
+private fun CampoPasswordAutenticacion(
+    valor: String,
+    alCambiar: (String) -> Unit,
+    placeholder: String,
+    visible: Boolean,
+    alAlternarVisibilidad: () -> Unit,
+    error: String?,
+    modifier: Modifier = Modifier,
+    accionIme: ImeAction = ImeAction.Done
+) {
+    CampoAutenticacion(
+        valor = valor,
+        alCambiar = alCambiar,
+        placeholder = placeholder,
+        contentDescriptionIcono = stringResource(R.string.cd_icono_password),
+        icono = Icons.Default.Lock,
+        error = error,
+        accionIme = accionIme,
+        tipoTeclado = KeyboardType.Password,
+        transformacionVisual = if (visible) VisualTransformation.None else PasswordVisualTransformation(),
+        trailingIcon = {
+            IconButton(onClick = alAlternarVisibilidad) {
+                Icon(
+                    imageVector = if (visible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                    contentDescription = if (visible) {
+                        stringResource(R.string.cd_ocultar_password)
+                    } else {
+                        stringResource(R.string.cd_mostrar_password)
+                    },
+                    tint = AuthYellow,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+        },
+        modifier = modifier
+    )
+}
+
+@Composable
+private fun BotonAccionAutenticacion(
+    texto: String,
+    cargando: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Button(
+        onClick = onClick,
+        enabled = !cargando,
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(6.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AuthYellow,
+            contentColor = AuthNavy,
+            disabledContainerColor = AuthYellowSoft,
+            disabledContentColor = AuthNavy.copy(alpha = 0.72f)
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 2.dp)
+    ) {
+        if (cargando) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(20.dp),
+                strokeWidth = 2.dp,
+                color = AuthNavy
+            )
+        } else {
+            Text(text = texto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+private fun BotonAnonimoAutenticacion(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Button(
+        onClick = onClick,
+        modifier = modifier.height(44.dp),
+        shape = RoundedCornerShape(6.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = AuthCoral,
+            contentColor = Color.White
+        ),
+        elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 2.dp)
+    ) {
+        Text(
+            text = stringResource(R.string.auth_ingresar_anonimo),
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Bold
+        )
+    }
+}
+
+@Composable
+private fun AvisoIngresoAnonimo(
+    onContinuar: () -> Unit,
+    onVolver: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color.White.copy(alpha = 0.36f))
+    )
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .navigationBarsPadding()
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = AuthYellow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 32.dp, vertical = 26.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(AuthNavy, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Warning,
+                    contentDescription = stringResource(R.string.cd_aviso_anonimo),
+                    tint = AuthYellow,
+                    modifier = Modifier.size(28.dp)
+                )
+            }
+            Text(
+                text = stringResource(R.string.auth_aviso_anonimo),
+                color = AuthNavy,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = onContinuar,
+                    shape = RoundedCornerShape(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuthNavy,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
+                ) {
+                    Text(text = stringResource(R.string.auth_continuar), fontSize = 12.sp)
+                }
+                Button(
+                    onClick = onVolver,
+                    shape = RoundedCornerShape(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = AuthCoral,
+                        contentColor = Color.White
+                    ),
+                    contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
+                ) {
+                    Text(text = stringResource(R.string.auth_volver), fontSize = 12.sp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PantallaBienvenidaAsistenTED(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .statusBarsPadding()
+            .navigationBarsPadding()
+    ) {
+        Column(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            Image(
+                painter = painterResource(R.drawable.logo_individual_multicolor),
+                contentDescription = stringResource(R.string.cd_logo_asistented),
+                modifier = Modifier.size(132.dp)
+            )
+            Text(
+                text = stringResource(R.string.auth_bienvenida),
+                color = AuthNavy,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            )
+        }
+        OndasBienvenida(modifier = Modifier.align(Alignment.BottomCenter))
+    }
+}
+
+@Composable
+private fun OndasBienvenida(modifier: Modifier = Modifier) {
+    Canvas(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(255.dp)
+    ) {
+        val yellow = Path().apply {
+            moveTo(0f, size.height * 0.63f)
+            cubicTo(size.width * 0.30f, size.height * 0.52f, size.width * 0.48f, size.height * 0.80f, size.width * 0.75f, size.height * 0.25f)
+            cubicTo(size.width * 0.88f, 0f, size.width, size.height * 0.03f, size.width, size.height * 0.03f)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        val blue = Path().apply {
+            moveTo(0f, size.height * 0.88f)
+            cubicTo(size.width * 0.24f, size.height * 0.72f, size.width * 0.47f, size.height * 0.80f, size.width * 0.70f, size.height * 0.55f)
+            cubicTo(size.width * 0.86f, size.height * 0.35f, size.width * 0.93f, size.height * 0.30f, size.width, size.height * 0.32f)
+            lineTo(size.width, size.height)
+            lineTo(0f, size.height)
+            close()
+        }
+        val red = Path().apply {
+            moveTo(0f, size.height)
+            cubicTo(size.width * 0.18f, size.height * 0.95f, size.width * 0.38f, size.height * 0.88f, size.width * 0.56f, size.height * 0.78f)
+            cubicTo(size.width * 0.74f, size.height * 0.68f, size.width * 0.86f, size.height * 0.50f, size.width, size.height * 0.49f)
+            lineTo(size.width, size.height)
+            close()
+        }
+        drawPath(yellow, AuthYellow.copy(alpha = 0.74f))
+        drawPath(blue, AuthBlueWave)
+        drawPath(red, AuthRedWave)
+    }
+}
+
+@Preview(name = "Login AsistenTED", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun PreviewPantallaInicioSesion() {
+    TemaAsistenTED(darkTheme = false) {
+        PantallaAutenticacionContenido(
+            modo = ModoAutenticacion.InicioSesion,
+            username = "Alex123",
+            nombre = "",
+            apellido = "",
+            password = "rodriguez123",
+            confirmation = "",
+            usernameError = null,
+            nombreError = null,
+            apellidoError = null,
+            passwordError = null,
+            confirmationError = null,
+            loginError = null,
+            cargando = false,
+            passwordVisible = false,
+            confirmationVisible = false,
+            onModoChange = {},
+            onUsernameChange = {},
+            onNombreChange = {},
+            onApellidoChange = {},
+            onPasswordChange = {},
+            onConfirmationChange = {},
+            onPasswordVisibilityChange = {},
+            onConfirmationVisibilityChange = {},
+            onPrimaryClick = {},
+            onAnonymousClick = {}
+        )
+    }
+}
+
+@Preview(name = "Registro AsistenTED", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun PreviewPantallaRegistro() {
+    TemaAsistenTED(darkTheme = false) {
+        PantallaAutenticacionContenido(
+            modo = ModoAutenticacion.Registro,
+            username = "Alex123",
+            nombre = "Alexis",
+            apellido = "Rodriguez",
+            password = "rodriguez123",
+            confirmation = "rodriguez12",
+            usernameError = stringResource(R.string.auth_error_usuario_repetido),
+            nombreError = null,
+            apellidoError = null,
+            passwordError = null,
+            confirmationError = stringResource(R.string.auth_error_confirmacion_diferente),
+            loginError = null,
+            cargando = false,
+            passwordVisible = false,
+            confirmationVisible = false,
+            onModoChange = {},
+            onUsernameChange = {},
+            onNombreChange = {},
+            onApellidoChange = {},
+            onPasswordChange = {},
+            onConfirmationChange = {},
+            onPasswordVisibilityChange = {},
+            onConfirmationVisibilityChange = {},
+            onPrimaryClick = {},
+            onAnonymousClick = {}
+        )
+    }
+}
+
+@Preview(name = "Bienvenida AsistenTED", showBackground = true, widthDp = 360, heightDp = 800)
+@Composable
+private fun PreviewPantallaBienvenida() {
+    TemaAsistenTED(darkTheme = false) {
+        PantallaBienvenidaAsistenTED()
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PantallaInicio(controlador: ControladorAsistenTed, navController: NavHostController) {
@@ -1610,6 +2374,8 @@ private fun formatearFecha(millis: Long): String {
         .atZone(ZoneId.systemDefault())
         .format(formatter)
 }
+
+
 
 
 

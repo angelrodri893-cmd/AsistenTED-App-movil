@@ -110,6 +110,16 @@ class RepositorioAutenticacion(
 class RepositorioUsuario(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
+    fun existeUsername(username: String, onResult: (Result<Boolean>) -> Unit) {
+        val normalized = ReglasAutenticacion.normalizarUsuario(username)
+        db.collection("users")
+            .whereEqualTo("username", normalized)
+            .limit(1)
+            .get()
+            .addOnSuccessListener { snapshot -> onResult(Result.success(!snapshot.isEmpty)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
+    }
+
     fun guardarPerfil(perfil: PerfilUsuario, onResult: (Result<Unit>) -> Unit = {}) {
         val data = mapOf(
             "uid" to perfil.uid,
