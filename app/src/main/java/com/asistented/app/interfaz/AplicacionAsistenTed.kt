@@ -196,7 +196,7 @@ class ControladorAsistenTed(context: Context) {
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
-        mensaje = "Entraste como anÃ³nimo. Puedes ver guÃ­as, pero algunas funciones se guardan solo con cuenta."
+        mensaje = "Entraste como anónimo. Puedes ver guías, pero algunas funciones se guardan solo con cuenta."
     }
 
     fun verificarUsuarioDisponible(username: String, onResult: (Result<Boolean>) -> Unit) {
@@ -252,10 +252,10 @@ class ControladorAsistenTed(context: Context) {
             result
                 .onSuccess {
                     establecerUsuarioRegistrado(it)
-                    mensaje = "SesiÃ³n iniciada."
+                    mensaje = "Sesión iniciada."
                 }
                 .onFailure {
-                    mensaje = it.comoMensajeUsuario("Usuario o contraseÃ±a incorrectos.")
+                    mensaje = it.comoMensajeUsuario("Usuario o contraseña incorrectos.")
                     onError(it)
                 }
         }
@@ -314,7 +314,7 @@ class ControladorAsistenTed(context: Context) {
     fun alternarFavorito(tramiteId: String) {
         val user = usuarioActual ?: return
         if (user.esInvitado) {
-            mensaje = "Inicia sesiÃ³n para guardar favoritos."
+            mensaje = "Inicia sesión para guardar favoritos."
             return
         }
         val updated = ReglasContenidoUsuario.alternarFavorito(favoritos, tramiteId)
@@ -334,7 +334,7 @@ class ControladorAsistenTed(context: Context) {
     fun agregarComentario(tramiteId: String, text: String) {
         val user = usuarioActual ?: return
         if (user.esInvitado) {
-            mensaje = "Inicia sesiÃ³n para comentar en el foro."
+            mensaje = "Inicia sesión para comentar en el foro."
             return
         }
         if (text.isBlank()) {
@@ -357,7 +357,7 @@ class ControladorAsistenTed(context: Context) {
     fun responderComentario(comentarioPadre: ComentarioForo, text: String) {
         val user = usuarioActual ?: return
         if (user.esInvitado) {
-            mensaje = "Inicia sesiÃ³n para responder en el foro."
+            mensaje = "Inicia sesión para responder en el foro."
             return
         }
         if (text.isBlank()) {
@@ -385,7 +385,7 @@ class ControladorAsistenTed(context: Context) {
             return
         }
         if (nuevoTexto.isBlank()) {
-            mensaje = "El comentario no puede quedar vacÃ­o."
+            mensaje = "El comentario no puede quedar vacío."
             return
         }
         val actualizado = comment.copy(text = nuevoTexto.trim(), editadoEnMillis = System.currentTimeMillis())
@@ -412,7 +412,7 @@ class ControladorAsistenTed(context: Context) {
     fun agregarRecordatorio(tramiteId: String, title: String, notes: String, programadoEnMillis: Long) {
         val user = usuarioActual ?: return
         if (user.esInvitado) {
-            mensaje = "Inicia sesiÃ³n para guardar recordatorios."
+            mensaje = "Inicia sesión para guardar recordatorios."
             return
         }
         if (programadoEnMillis <= System.currentTimeMillis()) {
@@ -422,7 +422,7 @@ class ControladorAsistenTed(context: Context) {
         val reminder = Recordatorio(
             id = UUID.randomUUID().toString(),
             tramiteId = tramiteId,
-            title = title.ifBlank { "Recordatorio de trÃ¡mite" },
+            title = title.ifBlank { "Recordatorio de trámite" },
             notes = notes,
             programadoEnMillis = programadoEnMillis
         )
@@ -582,7 +582,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
             composable(Rutas.FAVORITES) {
                 PantallaListaTramites(
                     title = "Favoritos",
-                    emptyText = "TodavÃ­a no guardas trÃ¡mites favoritos.",
+                    emptyText = "Todavía no guardas trámites favoritos.",
                     tramites = controlador.tramites.filter { controlador.favoritos.contains(it.id) },
                     controlador = controlador,
                     navController = navController
@@ -594,7 +594,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                     .mapNotNull { CatalogoTramites.buscarTramite(it.tramiteId) }
                 PantallaListaTramites(
                     title = "Historial",
-                    emptyText = "AquÃ­ aparecerÃ¡n los trÃ¡mites que revises.",
+                    emptyText = "Aquí aparecerán los trámites que revises.",
                     tramites = historialTramites,
                     controlador = controlador,
                     navController = navController
@@ -1443,19 +1443,19 @@ private fun PantallaInicio(controlador: ControladorAsistenTed, navController: Na
         item {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(
-                    "Hola, ${controlador.usuarioActual?.nombreVisible ?: "AnÃ³nimo"}",
+                    "Hola, ${controlador.usuarioActual?.nombreVisible ?: "Anónimo"}",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold
                 )
-                Text("Elige un trÃ¡mite para guiarte paso a paso.", style = MaterialTheme.typography.bodySmall)
+                Text("Elige un trámite para guiarte paso a paso.", style = MaterialTheme.typography.bodySmall)
             }
         }
         item {
             CampoEntrada(
                 valor = query,
                 alCambiar = { query = it },
-                etiqueta = "Buscar trÃ¡mite",
-                ayuda = "Puedes buscar por nombre o instituciÃ³n.",
+                etiqueta = "Buscar trámite",
+                ayuda = "Puedes buscar por nombre o institución.",
                 accionIme = ImeAction.Search,
                 iconoInicial = { Icon(Icons.Default.Search, contentDescription = null) },
                 modifier = Modifier.fillMaxWidth()
@@ -1654,11 +1654,11 @@ private fun PantallaRecordatorios(controlador: ControladorAsistenTed) {
     ) {
         item {
             Text("Recordatorios", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("Agenda una fecha para volver a revisar un trÃ¡mite.", style = cuerpoLegible(controlador))
+            Text("Agenda una fecha para volver a revisar un trámite.", style = cuerpoLegible(controlador))
         }
         if (controlador.usuarioActual?.esInvitado == true) {
             item {
-                TarjetaAviso("Cuenta necesaria", "Para guardar recordatorios y recibir avisos necesitas iniciar sesiÃ³n.")
+                TarjetaAviso("Cuenta necesaria", "Para guardar recordatorios y recibir avisos necesitas iniciar sesión.")
             }
         } else {
             item {
@@ -1669,7 +1669,7 @@ private fun PantallaRecordatorios(controlador: ControladorAsistenTed) {
                         CampoEntrada(
                             valor = title,
                             alCambiar = { title = it },
-                            etiqueta = "TÃ­tulo",
+                            etiqueta = "Título",
                             accionIme = ImeAction.Next,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -1707,7 +1707,7 @@ private fun PantallaRecordatorios(controlador: ControladorAsistenTed) {
                                 }
                                 val millis = analizarFechaHora(date, time)
                                 if (millis == null) {
-                                    controlador.mostrarMensaje("Usa una fecha y hora vÃ¡lidas.")
+                                    controlador.mostrarMensaje("Usa una fecha y hora válidas.")
                                 } else {
                                     controlador.agregarRecordatorio(selectedTramiteId, title, notes, millis)
                                 }
@@ -1746,7 +1746,7 @@ private fun PantallaPerfil(controlador: ControladorAsistenTed) {
     ) {
         Text("Perfil", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
         if (user?.esInvitado == true) {
-            TarjetaAviso("EstÃ¡s como anÃ³nimo", "Puedes consultar guÃ­as. Para editar nombre, apellido o avatar debes crear una cuenta.")
+            TarjetaAviso("Estás como anónimo", "Puedes consultar guías. Para editar nombre, apellido o avatar debes crear una cuenta.")
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
             VistaAvatar(avatar = selectedAvatar, size = 76)
@@ -1796,7 +1796,7 @@ private fun PantallaPerfil(controlador: ControladorAsistenTed) {
             modifier = Modifier.fillMaxWidth().height(52.dp),
             shape = RoundedCornerShape(8.dp)
         ) {
-            Text("Cerrar sesiÃ³n")
+            Text("Cerrar sesión")
         }
     }
 }
@@ -1811,7 +1811,7 @@ private fun SelectorAvatar(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("Selecciona tu avatar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Text(
-                if (habilitado) "Son imÃ¡genes locales de la app. No se sube ningÃºn archivo personal." else "Disponible cuando inicies sesiÃ³n con una cuenta.",
+                if (habilitado) "Son imágenes locales de la app. No se sube ningún archivo personal." else "Disponible cuando inicies sesión con una cuenta.",
                 style = MaterialTheme.typography.bodyMedium
             )
             AvataresPerfil.options.chunked(3).forEach { row ->
@@ -1917,13 +1917,13 @@ private fun PantallaAccesibilidad(controlador: ControladorAsistenTed) {
         Text("Ajusta la lectura visual de toda la app.", style = cuerpoLegible(controlador))
         FilaConfiguracion(
             title = "Texto grande",
-            description = "Aumenta el tamaÃ±o de explicaciones, ayudas y pasos.",
+            description = "Aumenta el tamaño de explicaciones, ayudas y pasos.",
             checked = configuracion.textoGrande,
             onCheckedChange = { controlador.actualizarAccesibilidad(configuracion.copy(textoGrande = it)) }
         )
         FilaConfiguracion(
             title = "Alto contraste",
-            description = "Usa fondo oscuro y colores mÃ¡s fuertes para leer mejor.",
+            description = "Usa fondo oscuro y colores más fuertes para leer mejor.",
             checked = configuracion.altoContraste,
             onCheckedChange = { controlador.actualizarAccesibilidad(configuracion.copy(altoContraste = it)) }
         )
@@ -1959,7 +1959,7 @@ private fun TarjetaTramite(
                 AssistChip(onClick = {}, label = { Text("${procedure.steps.size} pasos") })
             }
             Button(onClick = onOpen, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(8.dp)) {
-                Text("Ver guÃ­a")
+                Text("Ver guía")
             }
         }
     }
@@ -2027,10 +2027,10 @@ private fun SeccionForo(
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Forum, contentDescription = null)
             Spacer(Modifier.width(8.dp))
-            Text("Foro del trÃ¡mite", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text("Foro del trámite", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         }
         if (!puedeParticipar) {
-            TarjetaAviso("Solo lectura", "Inicia sesiÃ³n para publicar preguntas o comentarios.")
+            TarjetaAviso("Solo lectura", "Inicia sesión para publicar preguntas o comentarios.")
         } else {
             CampoEntrada(
                 valor = commentText,
@@ -2049,7 +2049,7 @@ private fun SeccionForo(
         }
 
         if (comentarios.isEmpty()) {
-            Text("AÃºn no hay comentarios para este trÃ¡mite.", style = MaterialTheme.typography.bodyMedium)
+            Text("Aún no hay comentarios para este trámite.", style = MaterialTheme.typography.bodyMedium)
         } else {
             comentariosPrincipales.forEach { comment ->
                 TarjetaComentarioForo(
@@ -2206,7 +2206,7 @@ private fun TarjetaComentarioForo(
 @Composable
 private fun SelectorTramite(tramites: List<Tramite>, selectedId: String, onSelected: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("TrÃ¡mite relacionado", style = MaterialTheme.typography.labelLarge)
+        Text("Trámite relacionado", style = MaterialTheme.typography.labelLarge)
         tramites.take(6).forEach { procedure ->
             FilterChip(
                 selected = selectedId == procedure.id,
@@ -2226,7 +2226,7 @@ private fun TarjetaRecordatorio(reminder: Recordatorio, controlador: Controlador
             Spacer(Modifier.width(10.dp))
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                 Text(reminder.title, fontWeight = FontWeight.Bold)
-                Text(procedure?.title ?: "TrÃ¡mite", style = MaterialTheme.typography.bodyMedium)
+                Text(procedure?.title ?: "Trámite", style = MaterialTheme.typography.bodyMedium)
                 Text(formatearFecha(reminder.programadoEnMillis), style = MaterialTheme.typography.labelMedium)
                 if (reminder.notes.isNotBlank()) Text(reminder.notes, style = MaterialTheme.typography.bodySmall)
             }
@@ -2374,6 +2374,7 @@ private fun formatearFecha(millis: Long): String {
         .atZone(ZoneId.systemDefault())
         .format(formatter)
 }
+
 
 
 
