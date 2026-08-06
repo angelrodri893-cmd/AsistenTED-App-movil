@@ -52,6 +52,14 @@
     <string name="home_cd_no_results">Sin resultados</string>
     <string name="home_cd_welcome_help">Ayuda para usar la pantalla principal</string>
 
+    <string name="favorites_title">Favoritos</string>
+    <string name="favorites_empty_title">Sin favoritos</string>
+    <string name="favorites_empty_description">Todav&#237;a no guardas tr&#225;mites favoritos.</string>
+    <string name="favorites_welcome_help">Para eliminar los tr&#225;mites favoritos pulsa nuevamente el bot&#243;n de guardado.</string>
+    <string name="favorites_cd_back">Regresar a la pantalla anterior</string>
+    <string name="favorites_cd_empty">Lista de favoritos vac&#237;a</string>
+    <string name="favorites_cd_welcome_help">Ayuda para administrar favoritos</string>
+
     <string name="nav_home">Inicio</string>
     <string name="nav_favorites">Favoritos</string>
     <string name="nav_notifications">Notificaci&#243;n</string>
