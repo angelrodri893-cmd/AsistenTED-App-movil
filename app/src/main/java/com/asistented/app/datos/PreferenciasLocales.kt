@@ -52,15 +52,34 @@ class PreferenciasLocales(context: Context) {
             .apply()
     }
 
+    fun marcarAyudaNotificacionesPendiente(uid: String) {
+        if (uid.isBlank()) return
+        preferences.edit()
+            .putBoolean(claveAyudaNotificaciones(uid), true)
+            .apply()
+    }
+
+    fun debeMostrarAyudaNotificaciones(uid: String): Boolean =
+        uid.isNotBlank() && preferences.getBoolean(claveAyudaNotificaciones(uid), false)
+
+    fun completarAyudaNotificaciones(uid: String) {
+        if (uid.isBlank()) return
+        preferences.edit()
+            .putBoolean(claveAyudaNotificaciones(uid), false)
+            .apply()
+    }
+
     // El uid evita que la decision de una cuenta oculte la ayuda para otra cuenta del dispositivo.
     private fun claveAyudaPrincipal(uid: String) = "$KEY_HOME_HELP_PREFIX$uid"
     private fun claveAyudaFavoritos(uid: String) = "$KEY_FAVORITES_HELP_PREFIX$uid"
+    private fun claveAyudaNotificaciones(uid: String) = "$KEY_NOTIFICATIONS_HELP_PREFIX$uid"
 
     companion object {
         private const val KEY_LARGE_TEXT = "large_text"
         private const val KEY_HIGH_CONTRAST = "high_contrast"
         private const val KEY_HOME_HELP_PREFIX = "home_help_pending_"
         private const val KEY_FAVORITES_HELP_PREFIX = "favorites_help_pending_"
+        private const val KEY_NOTIFICATIONS_HELP_PREFIX = "notifications_help_pending_"
     }
 }
 

@@ -7,12 +7,17 @@ import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
 import com.asistented.app.interfaz.filtrarTramites
+import com.asistented.app.interfaz.filtrarTramitesNotificaciones
+import com.asistented.app.interfaz.combinarFechaHora
 import com.asistented.app.interfaz.seleccionarTramitesFavoritos
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 
 class ReglasUsuarioTest {
     @Test
@@ -96,6 +101,27 @@ class ReglasUsuarioTest {
         )
 
         assertEquals(listOf("cedula", "licencia"), seleccionados.map { it.id })
+    }
+
+    @Test
+    fun filtrarTramitesNotificaciones_buscaPorTituloOInstitucion() {
+        val porTitulo = filtrarTramitesNotificaciones(CatalogoTramites.tramites, "pasaporte")
+        val porInstitucion = filtrarTramitesNotificaciones(CatalogoTramites.tramites, "ANT")
+
+        assertEquals(listOf("pasaporte"), porTitulo.map { it.id })
+        assertEquals(listOf("licencia"), porInstitucion.map { it.id })
+    }
+
+    @Test
+    fun combinarFechaHora_respetaLaZonaIndicada() {
+        val resultado = combinarFechaHora(
+            fecha = LocalDate.of(2026, 8, 5),
+            hora = 20,
+            minuto = 15,
+            zona = ZoneOffset.UTC
+        )
+
+        assertEquals(Instant.parse("2026-08-05T20:15:00Z").toEpochMilli(), resultado)
     }
 }
 

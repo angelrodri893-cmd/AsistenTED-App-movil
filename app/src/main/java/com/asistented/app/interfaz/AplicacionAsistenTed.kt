@@ -178,6 +178,8 @@ class ControladorAsistenTed(context: Context) {
         private set
     var mostrarAyudaFavoritos by mutableStateOf(false)
         private set
+    var mostrarAyudaNotificaciones by mutableStateOf(false)
+        private set
 
     init {
         repositorioAutenticacion.usuarioActual { perfil ->
@@ -197,6 +199,7 @@ class ControladorAsistenTed(context: Context) {
         usuarioActual = repositorioAutenticacion.perfilInvitado().copy(accessibility = configuracionAccesibilidad)
         mostrarAyudaPrincipal = false
         mostrarAyudaFavoritos = false
+        mostrarAyudaNotificaciones = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -235,6 +238,7 @@ class ControladorAsistenTed(context: Context) {
                 .onSuccess {
                     preferenciasLocales.marcarAyudaPrincipalPendiente(it.uid)
                     preferenciasLocales.marcarAyudaFavoritosPendiente(it.uid)
+                    preferenciasLocales.marcarAyudaNotificacionesPendiente(it.uid)
                     establecerUsuarioRegistrado(it)
                     mensaje = "Cuenta creada correctamente."
                 }
@@ -272,6 +276,7 @@ class ControladorAsistenTed(context: Context) {
         usuarioActual = null
         mostrarAyudaPrincipal = false
         mostrarAyudaFavoritos = false
+        mostrarAyudaNotificaciones = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -289,6 +294,12 @@ class ControladorAsistenTed(context: Context) {
         val usuario = usuarioActual?.takeIf { !it.esInvitado } ?: return
         preferenciasLocales.completarAyudaFavoritos(usuario.uid)
         mostrarAyudaFavoritos = false
+    }
+
+    fun descartarAyudaNotificaciones() {
+        val usuario = usuarioActual?.takeIf { !it.esInvitado } ?: return
+        preferenciasLocales.completarAyudaNotificaciones(usuario.uid)
+        mostrarAyudaNotificaciones = false
     }
 
     fun actualizarAccesibilidad(configuracion: ConfiguracionAccesibilidad) {
@@ -463,6 +474,7 @@ class ControladorAsistenTed(context: Context) {
         usuarioActual = usuarioRegistrado
         mostrarAyudaPrincipal = preferenciasLocales.debeMostrarAyudaPrincipal(usuarioRegistrado.uid)
         mostrarAyudaFavoritos = preferenciasLocales.debeMostrarAyudaFavoritos(usuarioRegistrado.uid)
+        mostrarAyudaNotificaciones = preferenciasLocales.debeMostrarAyudaNotificaciones(usuarioRegistrado.uid)
         cargarDatosPersistidos(usuarioRegistrado.uid)
     }
 
@@ -659,7 +671,37 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 )
             }
             composable(Rutas.REMINDERS) {
-                PantallaRecordatorios(controlador)
+                val context = LocalContext.current
+                val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+                PantallaNotificaciones(
+                    tramites = controlador.tramites,
+                    recordatorios = controlador.recordatorios.toList(),
+                    esInvitado = controlador.usuarioActual?.esInvitado == true,
+                    mostrarAvisoInicial = controlador.mostrarAyudaNotificaciones,
+                    onRegresar = { navController.popBackStack() },
+                    onAbrirPerfil = {
+                        navController.navigate(Rutas.PROFILE) {
+                            popUpTo(Rutas.HOME) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onGuardarRecordatorio = { tramiteId, titulo, nota, programadoEnMillis ->
+                        controlador.agregarRecordatorio(
+                            tramiteId = tramiteId,
+                            title = titulo,
+                            notes = nota,
+                            programadoEnMillis = programadoEnMillis
+                        )
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                        ) {
+                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    },
+                    onBorrarRecordatorio = controlador::borrarRecordatorio,
+                    onDescartarAviso = controlador::descartarAyudaNotificaciones
+                )
             }
             composable(Rutas.PROFILE) {
                 PantallaPerfil(controlador)
