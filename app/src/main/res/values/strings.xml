@@ -89,6 +89,42 @@
     <string name="notifications_cd_delete">Eliminar recordatorio</string>
     <string name="notifications_cd_welcome_help">Ayuda para crear notificaciones</string>
 
+    <string name="profile_title">Perfil</string>
+    <string name="profile_edit_title">Editar perfil</string>
+    <string name="profile_username">Usuario: %1$s</string>
+    <string name="profile_guest_name">Usuario an&#243;nimo</string>
+    <string name="profile_edit">Editar perfil</string>
+    <string name="profile_accessibility">Accesibilidad</string>
+    <string name="profile_large_text">Texto grande</string>
+    <string name="profile_high_contrast">Alto contraste</string>
+    <string name="profile_history">Historial</string>
+    <string name="profile_logout">Cerrar sesi&#243;n</string>
+    <string name="profile_new_name">Nuevo nombre</string>
+    <string name="profile_new_last_name">Nuevo apellido</string>
+    <string name="profile_choose_avatar">Elige un nuevo avatar</string>
+    <string name="profile_save_changes">Guardar cambios</string>
+    <string name="profile_changes_saved">Cambios guardados exitosamente</string>
+    <string name="profile_continue">Continuar</string>
+    <string name="profile_error_name">Ingresa tu nombre.</string>
+    <string name="profile_error_last_name">Ingresa tu apellido.</string>
+    <string name="profile_guest_message">Crea una cuenta para editar tus datos y guardar una configuraci&#243;n personal.</string>
+    <string name="profile_purpose">El fin de esta aplicaci&#243;n m&#243;vil es ofrecer una ayuda interactiva para realizar tr&#225;mites digitales. No intenta suplantar portales oficiales; tampoco se ingresa informaci&#243;n personal en p&#225;ginas externas.</string>
+    <string name="profile_welcome_help">En Perfil puedes editar tus datos, elegir un avatar, revisar tu historial y configurar las opciones de accesibilidad.</string>
+    <string name="profile_cd_back">Regresar a la pantalla anterior</string>
+    <string name="profile_cd_avatar">Avatar de perfil %1$d</string>
+    <string name="profile_cd_selected_avatar">Avatar seleccionado</string>
+    <string name="profile_cd_edit">Editar datos del perfil</string>
+    <string name="profile_cd_accessibility">Mostrar opciones de accesibilidad</string>
+    <string name="profile_cd_history">Abrir historial de tr&#225;mites</string>
+    <string name="profile_cd_logout">Cerrar la sesi&#243;n actual</string>
+    <string name="profile_cd_saved">Perfil actualizado correctamente</string>
+    <string name="profile_cd_welcome_help">Ayuda para usar la pantalla de perfil</string>
+
+    <string name="history_title">Historial</string>
+    <string name="history_empty_title">Sin tr&#225;mites revisados</string>
+    <string name="history_empty_description">Aqu&#237; aparecer&#225;n los tr&#225;mites que consultes.</string>
+    <string name="history_cd_empty">Historial de tr&#225;mites vac&#237;o</string>
+
     <string name="nav_home">Inicio</string>
     <string name="nav_favorites">Favoritos</string>
     <string name="nav_notifications">Notificaci&#243;n</string>

@@ -180,6 +180,8 @@ class ControladorAsistenTed(context: Context) {
         private set
     var mostrarAyudaNotificaciones by mutableStateOf(false)
         private set
+    var mostrarAyudaPerfil by mutableStateOf(false)
+        private set
 
     init {
         repositorioAutenticacion.usuarioActual { perfil ->
@@ -200,6 +202,7 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaPrincipal = false
         mostrarAyudaFavoritos = false
         mostrarAyudaNotificaciones = false
+        mostrarAyudaPerfil = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -239,6 +242,7 @@ class ControladorAsistenTed(context: Context) {
                     preferenciasLocales.marcarAyudaPrincipalPendiente(it.uid)
                     preferenciasLocales.marcarAyudaFavoritosPendiente(it.uid)
                     preferenciasLocales.marcarAyudaNotificacionesPendiente(it.uid)
+                    preferenciasLocales.marcarAyudaPerfilPendiente(it.uid)
                     establecerUsuarioRegistrado(it)
                     mensaje = "Cuenta creada correctamente."
                 }
@@ -277,6 +281,7 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaPrincipal = false
         mostrarAyudaFavoritos = false
         mostrarAyudaNotificaciones = false
+        mostrarAyudaPerfil = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -302,6 +307,12 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaNotificaciones = false
     }
 
+    fun descartarAyudaPerfil() {
+        val usuario = usuarioActual?.takeIf { !it.esInvitado } ?: return
+        preferenciasLocales.completarAyudaPerfil(usuario.uid)
+        mostrarAyudaPerfil = false
+    }
+
     fun actualizarAccesibilidad(configuracion: ConfiguracionAccesibilidad) {
         configuracionAccesibilidad = configuracion
         preferenciasLocales.guardarAccesibilidad(configuracion)
@@ -309,20 +320,28 @@ class ControladorAsistenTed(context: Context) {
         usuarioActual?.takeIf { !it.esInvitado }?.let { repositorioUsuario.guardarPerfil(it) }
     }
 
-    fun actualizarPerfil(nombre: String, apellido: String, avatarId: String) {
-        val user = usuarioActual ?: return
-        if (user.esInvitado) {
+    fun actualizarPerfil(
+        nombre: String,
+        apellido: String,
+        avatarId: String,
+        onResultado: (Boolean) -> Unit = {}
+    ) {
+        val usuario = usuarioActual ?: return
+        if (usuario.esInvitado) {
             mensaje = "Crea una cuenta para guardar tu perfil."
+            onResultado(false)
             return
         }
-        val updated = user.copy(
+        val perfilActualizado = usuario.copy(
             nombre = nombre.trim(),
             apellido = apellido.trim(),
             avatarId = avatarId
         )
-        usuarioActual = updated
-        repositorioUsuario.guardarPerfil(updated) {
-            mensaje = if (it.isSuccess) "Perfil guardado." else "No se pudo guardar el perfil."
+        usuarioActual = perfilActualizado
+        repositorioUsuario.guardarPerfil(perfilActualizado) { resultado ->
+            val guardado = resultado.isSuccess
+            mensaje = if (guardado) "Perfil guardado." else "No se pudo guardar el perfil."
+            onResultado(guardado)
         }
     }
 
@@ -475,6 +494,7 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaPrincipal = preferenciasLocales.debeMostrarAyudaPrincipal(usuarioRegistrado.uid)
         mostrarAyudaFavoritos = preferenciasLocales.debeMostrarAyudaFavoritos(usuarioRegistrado.uid)
         mostrarAyudaNotificaciones = preferenciasLocales.debeMostrarAyudaNotificaciones(usuarioRegistrado.uid)
+        mostrarAyudaPerfil = preferenciasLocales.debeMostrarAyudaPerfil(usuarioRegistrado.uid)
         cargarDatosPersistidos(usuarioRegistrado.uid)
     }
 
@@ -659,15 +679,18 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 )
             }
             composable(Rutas.HISTORY) {
-                val historialTramites = controlador.historial
-                    .distinctBy { it.tramiteId }
-                    .mapNotNull { CatalogoTramites.buscarTramite(it.tramiteId) }
-                PantallaListaTramites(
-                    title = "Historial",
-                    emptyText = "Aquí aparecerán los trámites que revises.",
-                    tramites = historialTramites,
-                    controlador = controlador,
-                    navController = navController
+                PantallaHistorialRedisenada(
+                    tramites = controlador.tramites,
+                    idsHistorial = controlador.historial.map { it.tramiteId },
+                    favoritos = controlador.favoritos.toSet(),
+                    textoGrande = controlador.configuracionAccesibilidad.textoGrande,
+                    onRegresar = { navController.popBackStack() },
+                    onAbrirPerfil = { navController.popBackStack(Rutas.PROFILE, inclusive = false) },
+                    onAbrirTramite = { tramite ->
+                        controlador.marcarConsultado(tramite.id)
+                        navController.navigate(Rutas.detail(tramite.id))
+                    },
+                    onAlternarFavorito = { tramite -> controlador.alternarFavorito(tramite.id) }
                 )
             }
             composable(Rutas.REMINDERS) {
@@ -704,7 +727,19 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 )
             }
             composable(Rutas.PROFILE) {
-                PantallaPerfil(controlador)
+                PantallaPerfilRedisenada(
+                    perfil = controlador.usuarioActual,
+                    configuracion = controlador.configuracionAccesibilidad,
+                    mostrarAvisoInicial = controlador.mostrarAyudaPerfil,
+                    onRegresar = { navController.popBackStack() },
+                    onGuardarPerfil = { nombre, apellido, avatarId, onResultado ->
+                        controlador.actualizarPerfil(nombre, apellido, avatarId, onResultado)
+                    },
+                    onActualizarAccesibilidad = controlador::actualizarAccesibilidad,
+                    onAbrirHistorial = { navController.navigate(Rutas.HISTORY) },
+                    onCerrarSesion = controlador::cerrarSesion,
+                    onDescartarAviso = controlador::descartarAyudaPerfil
+                )
             }
             composable(Rutas.ACCESSIBILITY) {
                 PantallaAccesibilidad(controlador)

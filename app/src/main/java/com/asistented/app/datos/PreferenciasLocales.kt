@@ -69,10 +69,28 @@ class PreferenciasLocales(context: Context) {
             .apply()
     }
 
+    fun marcarAyudaPerfilPendiente(uid: String) {
+        if (uid.isBlank()) return
+        preferences.edit()
+            .putBoolean(claveAyudaPerfil(uid), true)
+            .apply()
+    }
+
+    fun debeMostrarAyudaPerfil(uid: String): Boolean =
+        uid.isNotBlank() && preferences.getBoolean(claveAyudaPerfil(uid), false)
+
+    fun completarAyudaPerfil(uid: String) {
+        if (uid.isBlank()) return
+        preferences.edit()
+            .putBoolean(claveAyudaPerfil(uid), false)
+            .apply()
+    }
+
     // El uid evita que la decision de una cuenta oculte la ayuda para otra cuenta del dispositivo.
     private fun claveAyudaPrincipal(uid: String) = "$KEY_HOME_HELP_PREFIX$uid"
     private fun claveAyudaFavoritos(uid: String) = "$KEY_FAVORITES_HELP_PREFIX$uid"
     private fun claveAyudaNotificaciones(uid: String) = "$KEY_NOTIFICATIONS_HELP_PREFIX$uid"
+    private fun claveAyudaPerfil(uid: String) = "$KEY_PROFILE_HELP_PREFIX$uid"
 
     companion object {
         private const val KEY_LARGE_TEXT = "large_text"
@@ -80,6 +98,7 @@ class PreferenciasLocales(context: Context) {
         private const val KEY_HOME_HELP_PREFIX = "home_help_pending_"
         private const val KEY_FAVORITES_HELP_PREFIX = "favorites_help_pending_"
         private const val KEY_NOTIFICATIONS_HELP_PREFIX = "notifications_help_pending_"
+        private const val KEY_PROFILE_HELP_PREFIX = "profile_help_pending_"
     }
 }
 
