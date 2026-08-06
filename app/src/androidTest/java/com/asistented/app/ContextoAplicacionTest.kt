@@ -72,6 +72,23 @@ class ContextoAplicacionTest {
         assertFalse(preferencias.debeMostrarAyudaNotificaciones(uidPrueba))
         assertFalse(preferencias.debeMostrarAyudaNotificaciones(""))
     }
+
+    @Test
+    fun ayudaPerfil_seMantieneHastaQueElUsuarioLaComplete() {
+        val contextoAplicacion = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferencias = PreferenciasLocales(contextoAplicacion)
+        val uidPrueba = "usuario_prueba_ayuda_perfil"
+
+        preferencias.completarAyudaPerfil(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaPerfil(uidPrueba))
+
+        preferencias.marcarAyudaPerfilPendiente(uidPrueba)
+        assertTrue(PreferenciasLocales(contextoAplicacion).debeMostrarAyudaPerfil(uidPrueba))
+
+        preferencias.completarAyudaPerfil(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaPerfil(uidPrueba))
+        assertFalse(preferencias.debeMostrarAyudaPerfil(""))
+    }
 }
 
 

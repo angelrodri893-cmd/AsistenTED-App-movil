@@ -10,6 +10,7 @@ import com.asistented.app.interfaz.filtrarTramites
 import com.asistented.app.interfaz.filtrarTramitesNotificaciones
 import com.asistented.app.interfaz.combinarFechaHora
 import com.asistented.app.interfaz.seleccionarTramitesFavoritos
+import com.asistented.app.interfaz.seleccionarTramitesHistorial
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -122,6 +123,16 @@ class ReglasUsuarioTest {
         )
 
         assertEquals(Instant.parse("2026-08-05T20:15:00Z").toEpochMilli(), resultado)
+    }
+
+    @Test
+    fun seleccionarTramitesHistorial_respetaOrdenYDescartaIdsInvalidos() {
+        val seleccionados = seleccionarTramitesHistorial(
+            tramites = CatalogoTramites.tramites,
+            idsHistorial = listOf("licencia", "cedula", "licencia", "id-inexistente")
+        )
+
+        assertEquals(listOf("licencia", "cedula"), seleccionados.map { it.id })
     }
 }
 
