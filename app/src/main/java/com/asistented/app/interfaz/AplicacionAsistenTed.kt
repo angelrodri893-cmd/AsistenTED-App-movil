@@ -176,6 +176,8 @@ class ControladorAsistenTed(context: Context) {
         private set
     var mostrarAyudaPrincipal by mutableStateOf(false)
         private set
+    var mostrarAyudaFavoritos by mutableStateOf(false)
+        private set
 
     init {
         repositorioAutenticacion.usuarioActual { perfil ->
@@ -194,6 +196,7 @@ class ControladorAsistenTed(context: Context) {
     fun entrarComoInvitado() {
         usuarioActual = repositorioAutenticacion.perfilInvitado().copy(accessibility = configuracionAccesibilidad)
         mostrarAyudaPrincipal = false
+        mostrarAyudaFavoritos = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -231,6 +234,7 @@ class ControladorAsistenTed(context: Context) {
             result
                 .onSuccess {
                     preferenciasLocales.marcarAyudaPrincipalPendiente(it.uid)
+                    preferenciasLocales.marcarAyudaFavoritosPendiente(it.uid)
                     establecerUsuarioRegistrado(it)
                     mensaje = "Cuenta creada correctamente."
                 }
@@ -267,6 +271,7 @@ class ControladorAsistenTed(context: Context) {
         repositorioAutenticacion.cerrarSesion()
         usuarioActual = null
         mostrarAyudaPrincipal = false
+        mostrarAyudaFavoritos = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -278,6 +283,12 @@ class ControladorAsistenTed(context: Context) {
         val user = usuarioActual?.takeIf { !it.esInvitado } ?: return
         preferenciasLocales.completarAyudaPrincipal(user.uid)
         mostrarAyudaPrincipal = false
+    }
+
+    fun descartarAyudaFavoritos() {
+        val usuario = usuarioActual?.takeIf { !it.esInvitado } ?: return
+        preferenciasLocales.completarAyudaFavoritos(usuario.uid)
+        mostrarAyudaFavoritos = false
     }
 
     fun actualizarAccesibilidad(configuracion: ConfiguracionAccesibilidad) {
@@ -451,6 +462,7 @@ class ControladorAsistenTed(context: Context) {
         val usuarioRegistrado = perfil.copy(accessibility = configuracionAccesibilidad)
         usuarioActual = usuarioRegistrado
         mostrarAyudaPrincipal = preferenciasLocales.debeMostrarAyudaPrincipal(usuarioRegistrado.uid)
+        mostrarAyudaFavoritos = preferenciasLocales.debeMostrarAyudaFavoritos(usuarioRegistrado.uid)
         cargarDatosPersistidos(usuarioRegistrado.uid)
     }
 
@@ -611,12 +623,27 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 }
             }
             composable(Rutas.FAVORITES) {
-                PantallaListaTramites(
-                    title = "Favoritos",
-                    emptyText = "Todavía no guardas trámites favoritos.",
-                    tramites = controlador.tramites.filter { controlador.favoritos.contains(it.id) },
-                    controlador = controlador,
-                    navController = navController
+                PantallaFavoritos(
+                    tramites = controlador.tramites,
+                    favoritos = controlador.favoritos.toSet(),
+                    mostrarAvisoInicial = controlador.mostrarAyudaFavoritos,
+                    textoGrande = controlador.configuracionAccesibilidad.textoGrande,
+                    onRegresar = { navController.popBackStack() },
+                    onAbrirPerfil = {
+                        navController.navigate(Rutas.PROFILE) {
+                            popUpTo(Rutas.HOME) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onAbrirTramite = { tramite ->
+                        controlador.marcarConsultado(tramite.id)
+                        navController.navigate(Rutas.detail(tramite.id))
+                    },
+                    onAlternarFavorito = { tramite ->
+                        controlador.alternarFavorito(tramite.id)
+                    },
+                    onDescartarAviso = controlador::descartarAyudaFavoritos
                 )
             }
             composable(Rutas.HISTORY) {

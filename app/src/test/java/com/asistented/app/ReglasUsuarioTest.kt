@@ -7,6 +7,7 @@ import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
 import com.asistented.app.interfaz.filtrarTramites
+import com.asistented.app.interfaz.seleccionarTramitesFavoritos
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -85,6 +86,16 @@ class ReglasUsuarioTest {
 
         assertEquals(CatalogoTramites.tramites, todos)
         assertTrue(sinResultados.isEmpty())
+    }
+
+    @Test
+    fun seleccionarTramitesFavoritos_conservaElOrdenDelCatalogo() {
+        val seleccionados = seleccionarTramitesFavoritos(
+            tramites = CatalogoTramites.tramites,
+            favoritos = setOf("licencia", "cedula", "id-inexistente")
+        )
+
+        assertEquals(listOf("cedula", "licencia"), seleccionados.map { it.id })
     }
 }
 

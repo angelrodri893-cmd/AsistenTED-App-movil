@@ -38,6 +38,23 @@ class ContextoAplicacionTest {
         assertFalse(preferencias.debeMostrarAyudaPrincipal(uidPrueba))
         assertFalse(preferencias.debeMostrarAyudaPrincipal(""))
     }
+
+    @Test
+    fun ayudaFavoritos_seMantieneHastaQueElUsuarioLaComplete() {
+        val contextoAplicacion = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferencias = PreferenciasLocales(contextoAplicacion)
+        val uidPrueba = "usuario_prueba_ayuda_favoritos"
+
+        preferencias.completarAyudaFavoritos(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaFavoritos(uidPrueba))
+
+        preferencias.marcarAyudaFavoritosPendiente(uidPrueba)
+        assertTrue(PreferenciasLocales(contextoAplicacion).debeMostrarAyudaFavoritos(uidPrueba))
+
+        preferencias.completarAyudaFavoritos(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaFavoritos(uidPrueba))
+        assertFalse(preferencias.debeMostrarAyudaFavoritos(""))
+    }
 }
 
 
