@@ -55,6 +55,23 @@ class ContextoAplicacionTest {
         assertFalse(preferencias.debeMostrarAyudaFavoritos(uidPrueba))
         assertFalse(preferencias.debeMostrarAyudaFavoritos(""))
     }
+
+    @Test
+    fun ayudaNotificaciones_seMantieneHastaQueElUsuarioLaComplete() {
+        val contextoAplicacion = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferencias = PreferenciasLocales(contextoAplicacion)
+        val uidPrueba = "usuario_prueba_ayuda_notificaciones"
+
+        preferencias.completarAyudaNotificaciones(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaNotificaciones(uidPrueba))
+
+        preferencias.marcarAyudaNotificacionesPendiente(uidPrueba)
+        assertTrue(PreferenciasLocales(contextoAplicacion).debeMostrarAyudaNotificaciones(uidPrueba))
+
+        preferencias.completarAyudaNotificaciones(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaNotificaciones(uidPrueba))
+        assertFalse(preferencias.debeMostrarAyudaNotificaciones(""))
+    }
 }
 
 
