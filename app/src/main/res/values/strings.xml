@@ -60,6 +60,35 @@
     <string name="favorites_cd_empty">Lista de favoritos vac&#237;a</string>
     <string name="favorites_cd_welcome_help">Ayuda para administrar favoritos</string>
 
+    <string name="notifications_title">Notificaciones</string>
+    <string name="notifications_new_reminder">Nuevo recordatorio</string>
+    <string name="notifications_select_procedure">Seleccionar tr&#225;mite</string>
+    <string name="notifications_search_placeholder">Buscar...</string>
+    <string name="notifications_reminder_title">T&#237;tulo</string>
+    <string name="notifications_note">Nota adicional</string>
+    <string name="notifications_date">Fecha</string>
+    <string name="notifications_date_placeholder">00/00/0000</string>
+    <string name="notifications_date_format">D&#237;a/Mes/A&#241;o</string>
+    <string name="notifications_enter_time">Ingresa la hora</string>
+    <string name="notifications_cancel">Cancelar</string>
+    <string name="notifications_ok">Aceptar</string>
+    <string name="notifications_save">Guardar recordatorio</string>
+    <string name="notifications_scheduled_title">Recordatorios programados</string>
+    <string name="notifications_procedure_fallback">Tr&#225;mite</string>
+    <string name="notifications_guest_message">Para guardar recordatorios y recibir avisos necesitas iniciar sesi&#243;n.</string>
+    <string name="notifications_error_procedure">Selecciona un tr&#225;mite.</string>
+    <string name="notifications_error_title">Ingresa un t&#237;tulo.</string>
+    <string name="notifications_error_date_time">Selecciona una fecha y una hora.</string>
+    <string name="notifications_error_future">La fecha y hora deben ser futuras.</string>
+    <string name="notifications_welcome_help">Para crear una notificaci&#243;n, selecciona un tr&#225;mite y completa el t&#237;tulo, la fecha y la hora.</string>
+    <string name="notifications_cd_back">Regresar a la pantalla anterior</string>
+    <string name="notifications_cd_clear_procedure">Quitar tr&#225;mite seleccionado</string>
+    <string name="notifications_cd_open_date">Seleccionar fecha y hora</string>
+    <string name="notifications_cd_time">Selector de hora</string>
+    <string name="notifications_cd_scheduled">Notificaci&#243;n programada</string>
+    <string name="notifications_cd_delete">Eliminar recordatorio</string>
+    <string name="notifications_cd_welcome_help">Ayuda para crear notificaciones</string>
+
     <string name="nav_home">Inicio</string>
     <string name="nav_favorites">Favoritos</string>
     <string name="nav_notifications">Notificaci&#243;n</string>
