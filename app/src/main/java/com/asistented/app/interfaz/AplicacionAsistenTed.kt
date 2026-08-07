@@ -182,6 +182,8 @@ class ControladorAsistenTed(context: Context) {
         private set
     var mostrarAyudaPerfil by mutableStateOf(false)
         private set
+    var mostrarAyudaDetalle by mutableStateOf(false)
+        private set
 
     init {
         repositorioAutenticacion.usuarioActual { perfil ->
@@ -203,6 +205,7 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaFavoritos = false
         mostrarAyudaNotificaciones = false
         mostrarAyudaPerfil = false
+        mostrarAyudaDetalle = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -243,6 +246,7 @@ class ControladorAsistenTed(context: Context) {
                     preferenciasLocales.marcarAyudaFavoritosPendiente(it.uid)
                     preferenciasLocales.marcarAyudaNotificacionesPendiente(it.uid)
                     preferenciasLocales.marcarAyudaPerfilPendiente(it.uid)
+                    preferenciasLocales.marcarAyudaDetallePendiente(it.uid)
                     establecerUsuarioRegistrado(it)
                     mensaje = "Cuenta creada correctamente."
                 }
@@ -282,6 +286,7 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaFavoritos = false
         mostrarAyudaNotificaciones = false
         mostrarAyudaPerfil = false
+        mostrarAyudaDetalle = false
         favoritos.clear()
         historial.clear()
         recordatorios.clear()
@@ -311,6 +316,12 @@ class ControladorAsistenTed(context: Context) {
         val usuario = usuarioActual?.takeIf { !it.esInvitado } ?: return
         preferenciasLocales.completarAyudaPerfil(usuario.uid)
         mostrarAyudaPerfil = false
+    }
+
+    fun descartarAyudaDetalle() {
+        val usuario = usuarioActual?.takeIf { !it.esInvitado } ?: return
+        preferenciasLocales.completarAyudaDetalle(usuario.uid)
+        mostrarAyudaDetalle = false
     }
 
     fun actualizarAccesibilidad(configuracion: ConfiguracionAccesibilidad) {
@@ -495,6 +506,7 @@ class ControladorAsistenTed(context: Context) {
         mostrarAyudaFavoritos = preferenciasLocales.debeMostrarAyudaFavoritos(usuarioRegistrado.uid)
         mostrarAyudaNotificaciones = preferenciasLocales.debeMostrarAyudaNotificaciones(usuarioRegistrado.uid)
         mostrarAyudaPerfil = preferenciasLocales.debeMostrarAyudaPerfil(usuarioRegistrado.uid)
+        mostrarAyudaDetalle = preferenciasLocales.debeMostrarAyudaDetalle(usuarioRegistrado.uid)
         cargarDatosPersistidos(usuarioRegistrado.uid)
     }
 
@@ -650,8 +662,43 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 arguments = listOf(navArgument("tramiteId") { type = NavType.StringType })
             ) { entry ->
                 val tramiteId = entry.arguments?.getString("tramiteId").orEmpty()
-                CatalogoTramites.buscarTramite(tramiteId)?.let {
-                    PantallaDetalleTramite(controlador, it, navController)
+                CatalogoTramites.buscarTramite(tramiteId)?.let { tramite ->
+                    val contexto = LocalContext.current
+                    val lector = recordarLectorGuia()
+                    val textoGuia = remember(tramite.id) { construirTextoGuia(tramite) }
+
+                    LaunchedEffect(tramite.id) { controlador.cargarComentarios(tramite.id) }
+
+                    PantallaDetalleTramiteRedisenada(
+                        tramite = tramite,
+                        pasosCompletados = controlador.pasosCompletados[tramite.id].orEmpty(),
+                        comentarios = controlador.comentarios[tramite.id].orEmpty(),
+                        usuarioActualId = controlador.usuarioActual?.uid,
+                        puedeParticipar = controlador.usuarioActual?.esInvitado != true,
+                        textoGrande = controlador.configuracionAccesibilidad.textoGrande,
+                        mostrarAvisoInicial = controlador.mostrarAyudaDetalle,
+                        estaLeyendo = lector.isSpeaking,
+                        onRegresar = { navController.popBackStack() },
+                        onAbrirPerfil = {
+                            navController.navigate(Rutas.PROFILE) {
+                                popUpTo(Rutas.HOME) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
+                            }
+                        },
+                        onAbrirPortal = {
+                            contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tramite.urlOficial)))
+                        },
+                        onAlternarLectura = {
+                            if (lector.isSpeaking) lector.detener() else lector.leer(textoGuia)
+                        },
+                        onAlternarPaso = { paso -> controlador.alternarPaso(tramite.id, paso.id) },
+                        onPublicarComentario = { texto -> controlador.agregarComentario(tramite.id, texto) },
+                        onEditarComentario = controlador::editarComentario,
+                        onEliminarComentario = controlador::eliminarComentario,
+                        onResponderComentario = controlador::responderComentario,
+                        onDescartarAviso = controlador::descartarAyudaDetalle
+                    )
                 }
             }
             composable(Rutas.FAVORITES) {
