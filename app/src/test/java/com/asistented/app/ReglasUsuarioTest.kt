@@ -9,6 +9,8 @@ import com.asistented.app.dominio.ReglasContenidoUsuario
 import com.asistented.app.interfaz.filtrarTramites
 import com.asistented.app.interfaz.filtrarTramitesNotificaciones
 import com.asistented.app.interfaz.combinarFechaHora
+import com.asistented.app.interfaz.calcularProgresoDetalle
+import com.asistented.app.interfaz.construirTextoGuia
 import com.asistented.app.interfaz.seleccionarTramitesFavoritos
 import com.asistented.app.interfaz.seleccionarTramitesHistorial
 import org.junit.Assert.assertEquals
@@ -133,6 +135,23 @@ class ReglasUsuarioTest {
         )
 
         assertEquals(listOf("licencia", "cedula"), seleccionados.map { it.id })
+    }
+
+    @Test
+    fun calcularProgresoDetalle_limitaElResultadoEntreCeroYUno() {
+        assertEquals(0f, calcularProgresoDetalle(-1, 5))
+        assertEquals(0.4f, calcularProgresoDetalle(2, 5))
+        assertEquals(1f, calcularProgresoDetalle(8, 5))
+        assertEquals(0f, calcularProgresoDetalle(2, 0))
+    }
+
+    @Test
+    fun construirTextoGuia_incluyeResumenYPasos() {
+        val tramite = CatalogoTramites.tramites.first()
+        val texto = construirTextoGuia(tramite)
+
+        assertTrue(texto.contains(tramite.summary))
+        assertTrue(tramite.steps.all { texto.contains(it.title) && texto.contains(it.textoAyuda) })
     }
 }
 

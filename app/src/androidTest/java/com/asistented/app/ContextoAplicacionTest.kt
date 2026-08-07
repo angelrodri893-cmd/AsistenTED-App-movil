@@ -89,6 +89,23 @@ class ContextoAplicacionTest {
         assertFalse(preferencias.debeMostrarAyudaPerfil(uidPrueba))
         assertFalse(preferencias.debeMostrarAyudaPerfil(""))
     }
+
+    @Test
+    fun ayudaDetalle_seMantieneHastaQueElUsuarioLaComplete() {
+        val contextoAplicacion = InstrumentationRegistry.getInstrumentation().targetContext
+        val preferencias = PreferenciasLocales(contextoAplicacion)
+        val uidPrueba = "usuario_prueba_ayuda_detalle"
+
+        preferencias.completarAyudaDetalle(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaDetalle(uidPrueba))
+
+        preferencias.marcarAyudaDetallePendiente(uidPrueba)
+        assertTrue(PreferenciasLocales(contextoAplicacion).debeMostrarAyudaDetalle(uidPrueba))
+
+        preferencias.completarAyudaDetalle(uidPrueba)
+        assertFalse(preferencias.debeMostrarAyudaDetalle(uidPrueba))
+        assertFalse(preferencias.debeMostrarAyudaDetalle(""))
+    }
 }
 
 
