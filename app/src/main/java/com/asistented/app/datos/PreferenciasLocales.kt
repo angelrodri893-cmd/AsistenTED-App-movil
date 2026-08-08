@@ -18,6 +18,19 @@ class PreferenciasLocales(context: Context) {
             .apply()
     }
 
+    fun cargarCacheTramitesGobEc(): String? =
+        preferences.getString(KEY_GOBEC_CACHE_JSON, null)
+
+    fun cargarFechaCacheTramitesGobEc(): Long =
+        preferences.getLong(KEY_GOBEC_CACHE_TIME, 0L)
+
+    fun guardarCacheTramitesGobEc(json: String, guardadoEnMillis: Long) {
+        preferences.edit()
+            .putString(KEY_GOBEC_CACHE_JSON, json)
+            .putLong(KEY_GOBEC_CACHE_TIME, guardadoEnMillis)
+            .apply()
+    }
+
     fun marcarAyudaPrincipalPendiente(uid: String) {
         if (uid.isBlank()) return
         preferences.edit()
@@ -118,6 +131,8 @@ class PreferenciasLocales(context: Context) {
         private const val KEY_NOTIFICATIONS_HELP_PREFIX = "notifications_help_pending_"
         private const val KEY_PROFILE_HELP_PREFIX = "profile_help_pending_"
         private const val KEY_DETAIL_HELP_PREFIX = "detail_help_pending_"
+        private const val KEY_GOBEC_CACHE_JSON = "gobec_tramites_cache_json"
+        private const val KEY_GOBEC_CACHE_TIME = "gobec_tramites_cache_time"
     }
 }
 
