@@ -65,8 +65,8 @@ import com.asistented.app.interfaz.tema.TemaAsistenTED
 internal fun PantallaFavoritos(
     tramites: List<Tramite>,
     favoritos: Set<String>,
+    avatarId: String,
     mostrarAvisoInicial: Boolean,
-    textoGrande: Boolean,
     onRegresar: () -> Unit,
     onAbrirPerfil: () -> Unit,
     onAbrirTramite: (Tramite) -> Unit,
@@ -84,14 +84,20 @@ internal fun PantallaFavoritos(
             columns = GridCells.Adaptive(minSize = 148.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .widthIn(max = 720.dp)
+                .widthIn(max = DimensionesDiseno.anchoContenido)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 14.dp, top = 2.dp, end = 14.dp, bottom = 18.dp),
+            contentPadding = PaddingValues(
+                start = DimensionesDiseno.margenPantalla,
+                top = 4.dp,
+                end = DimensionesDiseno.margenPantalla,
+                bottom = 24.dp
+            ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
                 EncabezadoFavoritos(
+                    avatarId = avatarId,
                     onRegresar = onRegresar,
                     onAbrirPerfil = onAbrirPerfil
                 )
@@ -105,7 +111,6 @@ internal fun PantallaFavoritos(
                 items(tramitesFavoritos, key = { it.id }) { tramite ->
                     TarjetaFavorito(
                         tramite = tramite,
-                        textoGrande = textoGrande,
                         onAbrir = { onAbrirTramite(tramite) },
                         onEliminarFavorito = { onAlternarFavorito(tramite) }
                     )
@@ -129,62 +134,34 @@ internal fun seleccionarTramitesFavoritos(
 
 @Composable
 private fun EncabezadoFavoritos(
+    avatarId: String,
     onRegresar: () -> Unit,
     onAbrirPerfil: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onRegresar, modifier = Modifier.size(40.dp)) {
-                Image(
-                    painter = painterResource(R.drawable.ic_favoritos_regresar),
-                    contentDescription = stringResource(R.string.favorites_cd_back),
-                    modifier = Modifier.size(24.dp),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-            }
-            Text(
-                text = stringResource(R.string.favorites_title),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = onAbrirPerfil,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_home_usuario),
-                    contentDescription = stringResource(R.string.home_cd_open_profile),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    }
+    EncabezadoPantalla(
+        titulo = stringResource(R.string.favorites_title),
+        descripcionRegresar = stringResource(R.string.favorites_cd_back),
+        avatarId = avatarId,
+        onRegresar = onRegresar,
+        onAbrirPerfil = onAbrirPerfil
+    )
 }
 
 @Composable
 private fun TarjetaFavorito(
     tramite: Tramite,
-    textoGrande: Boolean,
     onAbrir: () -> Unit,
     onEliminarFavorito: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(7.dp),
+        shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
-            modifier = Modifier.padding(6.dp),
-            verticalArrangement = Arrangement.spacedBy(5.dp)
+            modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.img_plantilla_home),
@@ -194,17 +171,13 @@ private fun TarjetaFavorito(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(1.65f)
-                    .clip(RoundedCornerShape(5.dp)),
+                    .aspectRatio(2.36f)
+                    .clip(MaterialTheme.shapes.extraSmall),
                 contentScale = ContentScale.Crop
             )
             Text(
                 text = tramite.title,
-                style = if (textoGrande) {
-                    MaterialTheme.typography.bodyMedium
-                } else {
-                    MaterialTheme.typography.bodySmall
-                },
+                style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
                 minLines = 3,
                 maxLines = 3,
@@ -217,46 +190,13 @@ private fun TarjetaFavorito(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onAbrir,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(36.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 6.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_view_guide),
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1
-                    )
-                }
-                OutlinedIconButton(
-                    onClick = onEliminarFavorito,
-                    modifier = Modifier.size(36.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    colors = IconButtonDefaults.outlinedIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Bookmark,
-                        contentDescription = stringResource(R.string.home_cd_remove_favorite),
-                        modifier = Modifier.size(19.dp)
-                    )
-                }
-            }
+            AccionesTarjetaTramite(
+                esFavorito = true,
+                textoAccion = stringResource(R.string.home_view_guide),
+                descripcionFavorito = stringResource(R.string.home_cd_remove_favorite),
+                onAbrir = onAbrir,
+                onAlternarFavorito = onEliminarFavorito
+            )
         }
     }
 }
@@ -293,57 +233,12 @@ private fun EstadoFavoritosVacio() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvisoInicialFavoritos(onDescartarAviso: () -> Unit) {
-    val estadoHoja = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { it != SheetValue.Hidden }
+    AvisoModalDiseno(
+        mensaje = stringResource(R.string.favorites_welcome_help),
+        textoBoton = stringResource(R.string.home_do_not_remind),
+        descripcionIcono = stringResource(R.string.favorites_cd_welcome_help),
+        onContinuar = onDescartarAviso
     )
-    ModalBottomSheet(
-        onDismissRequest = {},
-        sheetState = estadoHoja,
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        tonalElevation = 0.dp,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 28.dp, top = 26.dp, end = 28.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.SentimentSatisfiedAlt,
-                contentDescription = stringResource(R.string.favorites_cd_welcome_help),
-                modifier = Modifier.size(58.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(R.string.favorites_welcome_help),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Button(
-                onClick = onDescartarAviso,
-                modifier = Modifier
-                    .widthIn(max = 270.dp)
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    text = stringResource(R.string.home_do_not_remind),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-        }
-    }
 }
 
 @Preview(name = "Favoritos compacta", showBackground = true, widthDp = 360, heightDp = 800)
@@ -376,8 +271,8 @@ private fun PantallaFavoritosPreview(mostrarAvisoInicial: Boolean = false) {
     PantallaFavoritos(
         tramites = tramites,
         favoritos = tramites.map { it.id }.toSet(),
+        avatarId = "avatar_1",
         mostrarAvisoInicial = mostrarAvisoInicial,
-        textoGrande = false,
         onRegresar = {},
         onAbrirPerfil = {},
         onAbrirTramite = {},

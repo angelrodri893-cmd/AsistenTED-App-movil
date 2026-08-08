@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -92,6 +93,7 @@ private enum class SelectorFechaHora {
 internal fun PantallaNotificaciones(
     tramites: List<Tramite>,
     recordatorios: List<Recordatorio>,
+    avatarId: String,
     esInvitado: Boolean,
     mostrarAvisoInicial: Boolean,
     onRegresar: () -> Unit,
@@ -130,13 +132,19 @@ internal fun PantallaNotificaciones(
         LazyColumn(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .widthIn(max = 720.dp)
+                .widthIn(max = DimensionesDiseno.anchoContenido)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 14.dp, top = 2.dp, end = 14.dp, bottom = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            contentPadding = PaddingValues(
+                start = DimensionesDiseno.margenPantalla,
+                top = 4.dp,
+                end = DimensionesDiseno.margenPantalla,
+                bottom = 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(DimensionesDiseno.espacioPantalla)
         ) {
             item {
                 EncabezadoNotificaciones(
+                    avatarId = avatarId,
                     onRegresar = onRegresar,
                     onAbrirPerfil = onAbrirPerfil
                 )
@@ -259,44 +267,17 @@ internal fun combinarFechaHora(
 
 @Composable
 private fun EncabezadoNotificaciones(
+    avatarId: String,
     onRegresar: () -> Unit,
     onAbrirPerfil: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onRegresar, modifier = Modifier.size(40.dp)) {
-                Image(
-                    painter = painterResource(R.drawable.ic_favoritos_regresar),
-                    contentDescription = stringResource(R.string.notifications_cd_back),
-                    modifier = Modifier.size(24.dp),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-            }
-            Text(
-                text = stringResource(R.string.notifications_title),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = onAbrirPerfil,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_home_usuario),
-                    contentDescription = stringResource(R.string.home_cd_open_profile),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    }
+    EncabezadoPantalla(
+        titulo = stringResource(R.string.notifications_title),
+        descripcionRegresar = stringResource(R.string.notifications_cd_back),
+        avatarId = avatarId,
+        onRegresar = onRegresar,
+        onAbrirPerfil = onAbrirPerfil
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -360,6 +341,7 @@ private fun FormularioNotificacion(
                 label = { Text(stringResource(R.string.notifications_select_procedure)) },
                 placeholder = { Text(stringResource(R.string.notifications_search_placeholder)) },
                 singleLine = true,
+                shape = MaterialTheme.shapes.small,
                 isError = errorTramite,
                 supportingText = if (errorTramite) {
                     { Text(stringResource(R.string.notifications_error_procedure)) }
@@ -412,6 +394,7 @@ private fun FormularioNotificacion(
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.notifications_reminder_title)) },
             singleLine = true,
+            shape = MaterialTheme.shapes.small,
             isError = errorTitulo,
             supportingText = if (errorTitulo) {
                 { Text(stringResource(R.string.notifications_error_title)) }
@@ -426,9 +409,10 @@ private fun FormularioNotificacion(
             onValueChange = onNotaChange,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(82.dp),
+                .heightIn(min = 96.dp),
             label = { Text(stringResource(R.string.notifications_note)) },
             maxLines = 3,
+            shape = MaterialTheme.shapes.small,
             colors = coloresCampoNotificacion()
         )
 
@@ -462,8 +446,8 @@ private fun FormularioNotificacion(
             onClick = onGuardar,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp),
-            shape = RoundedCornerShape(8.dp),
+                .height(DimensionesDiseno.altoAccion),
+            shape = MaterialTheme.shapes.small,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
@@ -499,6 +483,7 @@ private fun CampoFechaNotificacion(
             .fillMaxWidth()
             .clickable(onClick = onAbrirFecha),
         readOnly = true,
+        shape = MaterialTheme.shapes.small,
         label = { Text(stringResource(R.string.notifications_date)) },
         placeholder = { Text(stringResource(R.string.notifications_date_placeholder)) },
         trailingIcon = {
@@ -539,7 +524,7 @@ private fun SelectorFechaNotificacion(
     )
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
@@ -588,13 +573,13 @@ private fun SelectorHoraNotificacion(
     )
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            verticalArrangement = Arrangement.spacedBy(DimensionesDiseno.espacioPantalla)
         ) {
             Text(
                 text = stringResource(R.string.notifications_enter_time),
@@ -654,7 +639,7 @@ private fun TarjetaNotificacion(
         .format(DateTimeFormatter.ofPattern("dd/MM/yyyy • HH:mm", Locale.forLanguageTag("es-EC")))
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
@@ -717,67 +702,16 @@ private fun AvisoCuentaNecesaria() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvisoInicialNotificaciones(onDescartarAviso: () -> Unit) {
-    val estadoHoja = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { it != SheetValue.Hidden }
+    AvisoModalDiseno(
+        mensaje = stringResource(R.string.notifications_welcome_help),
+        textoBoton = stringResource(R.string.home_do_not_remind),
+        descripcionIcono = stringResource(R.string.notifications_cd_welcome_help),
+        onContinuar = onDescartarAviso
     )
-    ModalBottomSheet(
-        onDismissRequest = {},
-        sheetState = estadoHoja,
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        tonalElevation = 0.dp,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 28.dp, top = 26.dp, end = 28.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.SentimentSatisfiedAlt,
-                contentDescription = stringResource(R.string.notifications_cd_welcome_help),
-                modifier = Modifier.size(58.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(R.string.notifications_welcome_help),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Button(
-                onClick = onDescartarAviso,
-                modifier = Modifier
-                    .widthIn(max = 270.dp)
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    text = stringResource(R.string.home_do_not_remind),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-        }
-    }
 }
 
 @Composable
-private fun coloresCampoNotificacion() = OutlinedTextFieldDefaults.colors(
-    focusedBorderColor = MaterialTheme.colorScheme.primary,
-    unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-    errorBorderColor = MaterialTheme.colorScheme.error,
-    focusedLabelColor = MaterialTheme.colorScheme.primary,
-    errorLabelColor = MaterialTheme.colorScheme.error
-)
+private fun coloresCampoNotificacion() = coloresCampoDiseno()
 
 @Preview(name = "Notificaciones compacta", showBackground = true, widthDp = 360, heightDp = 800)
 @Composable
@@ -821,6 +755,7 @@ private fun PantallaNotificacionesPreview(mostrarAvisoInicial: Boolean = false) 
                     .toEpochMilli()
             )
         ),
+        avatarId = "avatar_1",
         esInvitado = false,
         mostrarAvisoInicial = mostrarAvisoInicial,
         onRegresar = {},

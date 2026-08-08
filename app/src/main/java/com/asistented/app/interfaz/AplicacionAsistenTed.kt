@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.speech.tts.TextToSpeech
-import androidx.annotation.DrawableRes
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.BorderStroke
@@ -47,6 +46,7 @@ import androidx.compose.material.icons.filled.BookmarkBorder
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.OpenInBrowser
@@ -96,9 +96,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
@@ -622,9 +624,11 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
         return
     }
 
+    val avatarIdActual = controlador.usuarioActual?.avatarId.orEmpty()
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
-        bottomBar = { BarraInferiorPrincipal(navController) }
+        bottomBar = { BarraInferiorPrincipal(navController, avatarIdActual) }
     ) { padding ->
         NavHost(
             navController = navController,
@@ -636,10 +640,10 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
             composable(Rutas.HOME) {
                 PantallaPrincipal(
                     nombreUsuario = controlador.usuarioActual?.nombreVisible.orEmpty(),
+                    avatarId = avatarIdActual,
                     tramites = controlador.tramites,
                     favoritos = controlador.favoritos.toSet(),
                     mostrarAvisoInicial = controlador.mostrarAyudaPrincipal,
-                    textoGrande = controlador.configuracionAccesibilidad.textoGrande,
                     onAbrirTramite = { tramite ->
                         controlador.marcarConsultado(tramite.id)
                         navController.navigate(Rutas.detail(tramite.id))
@@ -674,8 +678,8 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                         pasosCompletados = controlador.pasosCompletados[tramite.id].orEmpty(),
                         comentarios = controlador.comentarios[tramite.id].orEmpty(),
                         usuarioActualId = controlador.usuarioActual?.uid,
+                        avatarId = avatarIdActual,
                         puedeParticipar = controlador.usuarioActual?.esInvitado != true,
-                        textoGrande = controlador.configuracionAccesibilidad.textoGrande,
                         mostrarAvisoInicial = controlador.mostrarAyudaDetalle,
                         estaLeyendo = lector.isSpeaking,
                         onRegresar = { navController.popBackStack() },
@@ -705,8 +709,8 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 PantallaFavoritos(
                     tramites = controlador.tramites,
                     favoritos = controlador.favoritos.toSet(),
+                    avatarId = avatarIdActual,
                     mostrarAvisoInicial = controlador.mostrarAyudaFavoritos,
-                    textoGrande = controlador.configuracionAccesibilidad.textoGrande,
                     onRegresar = { navController.popBackStack() },
                     onAbrirPerfil = {
                         navController.navigate(Rutas.PROFILE) {
@@ -730,7 +734,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                     tramites = controlador.tramites,
                     idsHistorial = controlador.historial.map { it.tramiteId },
                     favoritos = controlador.favoritos.toSet(),
-                    textoGrande = controlador.configuracionAccesibilidad.textoGrande,
+                    avatarId = avatarIdActual,
                     onRegresar = { navController.popBackStack() },
                     onAbrirPerfil = { navController.popBackStack(Rutas.PROFILE, inclusive = false) },
                     onAbrirTramite = { tramite ->
@@ -746,6 +750,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 PantallaNotificaciones(
                     tramites = controlador.tramites,
                     recordatorios = controlador.recordatorios.toList(),
+                    avatarId = avatarIdActual,
                     esInvitado = controlador.usuarioActual?.esInvitado == true,
                     mostrarAvisoInicial = controlador.mostrarAyudaNotificaciones,
                     onRegresar = { navController.popBackStack() },
@@ -799,15 +804,6 @@ private enum class ModoAutenticacion {
     InicioSesion,
     Registro
 }
-
-private val AuthYellow = Color(0xFFFFCC00)
-private val AuthYellowSoft = Color(0xFFFFEFA3)
-private val AuthNavy = Color(0xFF14213D)
-private val AuthMuted = Color(0xFFE9E5DC)
-private val AuthCoral = Color(0xFFFF6B63)
-private val AuthError = Color(0xFFE53935)
-private val AuthBlueWave = Color(0xFF5659D9)
-private val AuthRedWave = Color(0xFFE25261)
 
 @Composable
 private fun PantallaAutenticacionDisenada(controlador: ControladorAsistenTed, modifier: Modifier = Modifier) {
@@ -1038,7 +1034,8 @@ private fun PantallaAutenticacionContenido(
             .background(MaterialTheme.colorScheme.background)
     ) {
         val compact = maxHeight < 720.dp
-        val horizontalPadding = if (maxWidth < 360.dp) 24.dp else 38.dp
+        val margenBase = if (maxWidth < 360.dp) 24.dp else 38.dp
+        val horizontalPadding = if (maxWidth > 560.dp) (maxWidth - 480.dp) / 2 else margenBase
         val logoWidth = if (compact) 220.dp else 248.dp
 
         Column(
@@ -1072,8 +1069,8 @@ private fun PantallaAutenticacionContenido(
                 modo = modo,
                 onModoChange = onModoChange,
                 modifier = Modifier
-                    .fillMaxWidth()
                     .widthIn(max = 360.dp)
+                    .fillMaxWidth()
             )
 
             Spacer(Modifier.height(if (compact) 6.dp else 10.dp))
@@ -1139,7 +1136,7 @@ private fun PantallaAutenticacionContenido(
             if (loginError != null) {
                 Text(
                     text = loginError,
-                    color = AuthError,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.labelMedium,
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1204,11 +1201,11 @@ private fun BotonModoAutenticacion(
 ) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(38.dp),
-        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.height(DimensionesDiseno.altoAccion),
+        shape = MaterialTheme.shapes.small,
         colors = ButtonDefaults.buttonColors(
-            containerColor = if (seleccionado) AuthYellow else AuthMuted,
-            contentColor = AuthNavy
+            containerColor = if (seleccionado) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.surfaceVariant,
+            contentColor = MaterialTheme.colorScheme.onSecondary
         ),
         elevation = ButtonDefaults.buttonElevation(
             defaultElevation = if (seleccionado) 5.dp else 0.dp,
@@ -1216,7 +1213,7 @@ private fun BotonModoAutenticacion(
         ),
         contentPadding = PaddingValues(horizontal = 8.dp)
     ) {
-        Text(text = texto, fontSize = 12.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(text = texto, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
     }
 }
 
@@ -1240,28 +1237,27 @@ private fun CampoAutenticacion(
             value = valor,
             onValueChange = { alCambiar(it.replace("\n", " ")) },
             modifier = Modifier
-                .fillMaxWidth()
-                .height(54.dp),
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.small,
             placeholder = {
                 Text(
                     text = placeholder,
-                    color = AuthNavy.copy(alpha = 0.62f),
-                    fontSize = 12.sp
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             },
             leadingIcon = {
                 Icon(
                     imageVector = icono,
                     contentDescription = contentDescriptionIcono,
-                    tint = if (error != null) AuthError else AuthYellow,
+                    tint = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
             },
             trailingIcon = trailingIcon,
             singleLine = true,
             isError = error != null,
-            shape = RoundedCornerShape(50.dp),
-            textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 12.sp),
+            textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(
                 keyboardType = tipoTeclado,
                 imeAction = accionIme
@@ -1272,22 +1268,22 @@ private fun CampoAutenticacion(
             ),
             visualTransformation = transformacionVisual,
             colors = OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = AuthYellow,
-                unfocusedBorderColor = AuthNavy,
-                errorBorderColor = AuthError,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                errorBorderColor = MaterialTheme.colorScheme.error,
                 focusedContainerColor = Color.Transparent,
                 unfocusedContainerColor = Color.Transparent,
                 errorContainerColor = Color.Transparent,
-                cursorColor = AuthNavy,
-                focusedTextColor = AuthNavy,
-                unfocusedTextColor = AuthNavy,
-                errorTextColor = AuthNavy
+                cursorColor = MaterialTheme.colorScheme.primary,
+                focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                errorTextColor = MaterialTheme.colorScheme.onSurface
             )
         )
         if (error != null) {
             Text(
                 text = error,
-                color = AuthError,
+                color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.labelMedium,
                 modifier = Modifier.padding(start = 18.dp)
             )
@@ -1325,7 +1321,7 @@ private fun CampoPasswordAutenticacion(
                     } else {
                         stringResource(R.string.cd_mostrar_password)
                     },
-                    tint = AuthYellow,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(18.dp)
                 )
             }
@@ -1344,13 +1340,13 @@ private fun BotonAccionAutenticacion(
     Button(
         onClick = onClick,
         enabled = !cargando,
-        modifier = modifier.height(44.dp),
-        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.height(DimensionesDiseno.altoAccion),
+        shape = MaterialTheme.shapes.small,
         colors = ButtonDefaults.buttonColors(
-            containerColor = AuthYellow,
-            contentColor = AuthNavy,
-            disabledContainerColor = AuthYellowSoft,
-            disabledContentColor = AuthNavy.copy(alpha = 0.72f)
+            containerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.onSecondary,
+            disabledContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            disabledContentColor = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.72f)
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 2.dp)
     ) {
@@ -1358,10 +1354,10 @@ private fun BotonAccionAutenticacion(
             CircularProgressIndicator(
                 modifier = Modifier.size(20.dp),
                 strokeWidth = 2.dp,
-                color = AuthNavy
+                color = MaterialTheme.colorScheme.onSecondary
             )
         } else {
-            Text(text = texto, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+            Text(text = texto, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
         }
     }
 }
@@ -1370,17 +1366,17 @@ private fun BotonAccionAutenticacion(
 private fun BotonAnonimoAutenticacion(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Button(
         onClick = onClick,
-        modifier = modifier.height(44.dp),
-        shape = RoundedCornerShape(6.dp),
+        modifier = modifier.height(DimensionesDiseno.altoAccion),
+        shape = MaterialTheme.shapes.small,
         colors = ButtonDefaults.buttonColors(
-            containerColor = AuthCoral,
-            contentColor = Color.White
+            containerColor = MaterialTheme.colorScheme.tertiary,
+            contentColor = MaterialTheme.colorScheme.onTertiary
         ),
         elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp, pressedElevation = 2.dp)
     ) {
         Text(
             text = stringResource(R.string.auth_ingresar_anonimo),
-            fontSize = 12.sp,
+            style = MaterialTheme.typography.labelLarge,
             fontWeight = FontWeight.Bold
         )
     }
@@ -1395,15 +1391,15 @@ private fun AvisoIngresoAnonimo(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color.White.copy(alpha = 0.36f))
+            .background(MaterialTheme.colorScheme.scrim.copy(alpha = 0.36f))
     )
     Card(
         modifier = modifier
             .fillMaxWidth()
             .navigationBarsPadding()
             .padding(horizontal = 8.dp, vertical = 10.dp),
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = AuthYellow),
+        shape = MaterialTheme.shapes.large,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondary),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
     ) {
         Column(
@@ -1414,19 +1410,19 @@ private fun AvisoIngresoAnonimo(
             Box(
                 modifier = Modifier
                     .size(48.dp)
-                    .background(AuthNavy, CircleShape),
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = stringResource(R.string.cd_aviso_anonimo),
-                    tint = AuthYellow,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(28.dp)
                 )
             }
             Text(
                 text = stringResource(R.string.auth_aviso_anonimo),
-                color = AuthNavy,
+                color = MaterialTheme.colorScheme.onSecondary,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -1434,25 +1430,27 @@ private fun AvisoIngresoAnonimo(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
                     onClick = onContinuar,
-                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier.height(DimensionesDiseno.altoAccion),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AuthNavy,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
                     ),
                     contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
                 ) {
-                    Text(text = stringResource(R.string.auth_continuar), fontSize = 12.sp)
+                    Text(text = stringResource(R.string.auth_continuar), style = MaterialTheme.typography.labelMedium)
                 }
                 Button(
                     onClick = onVolver,
-                    shape = RoundedCornerShape(50.dp),
+                    modifier = Modifier.height(DimensionesDiseno.altoAccion),
+                    shape = CircleShape,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = AuthCoral,
-                        contentColor = Color.White
+                        containerColor = MaterialTheme.colorScheme.tertiary,
+                        contentColor = MaterialTheme.colorScheme.onTertiary
                     ),
                     contentPadding = PaddingValues(horizontal = 18.dp, vertical = 8.dp)
                 ) {
-                    Text(text = stringResource(R.string.auth_volver), fontSize = 12.sp)
+                    Text(text = stringResource(R.string.auth_volver), style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
@@ -1482,7 +1480,7 @@ private fun PantallaBienvenidaAsistenTED(modifier: Modifier = Modifier) {
             )
             Text(
                 text = stringResource(R.string.auth_bienvenida),
-                color = AuthNavy,
+                color = MaterialTheme.colorScheme.onBackground,
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
@@ -1494,6 +1492,9 @@ private fun PantallaBienvenidaAsistenTED(modifier: Modifier = Modifier) {
 
 @Composable
 private fun OndasBienvenida(modifier: Modifier = Modifier) {
+    val amarillo = MaterialTheme.colorScheme.secondary
+    val azul = MaterialTheme.colorScheme.primary
+    val rojo = MaterialTheme.colorScheme.tertiary
     Canvas(
         modifier = modifier
             .fillMaxWidth()
@@ -1522,9 +1523,9 @@ private fun OndasBienvenida(modifier: Modifier = Modifier) {
             lineTo(size.width, size.height)
             close()
         }
-        drawPath(yellow, AuthYellow.copy(alpha = 0.74f))
-        drawPath(blue, AuthBlueWave)
-        drawPath(red, AuthRedWave)
+        drawPath(yellow, amarillo.copy(alpha = 0.74f))
+        drawPath(blue, azul)
+        drawPath(red, rojo)
     }
 }
 
@@ -2071,7 +2072,7 @@ private fun TarjetaTramite(
                     Icon(if (isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, contentDescription = "Favorito")
                 }
             }
-            Text(procedure.summary, style = if (textoGrande) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium)
+            Text(procedure.summary, style = MaterialTheme.typography.bodyMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 AssistChip(onClick = {}, label = { Text(procedure.category) })
                 AssistChip(onClick = {}, label = { Text("${procedure.steps.size} pasos") })
@@ -2104,7 +2105,7 @@ private fun TarjetaPasoGuia(
                 Checkbox(checked = completed, onCheckedChange = { onCompletedChange() })
                 Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
             }
-            Text(description, style = if (textoGrande) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge)
+            Text(description, style = MaterialTheme.typography.bodyLarge)
             TarjetaAviso("Ayuda", textoAyuda)
             Card(
                 shape = RoundedCornerShape(8.dp),
@@ -2383,14 +2384,22 @@ private fun TarjetaAviso(title: String, text: String) {
 }
 
 @Composable
-private fun BarraInferiorPrincipal(navController: NavHostController) {
+private fun BarraInferiorPrincipal(
+    navController: NavHostController,
+    avatarId: String
+) {
     val entry by navController.currentBackStackEntryAsState()
     val current = entry?.destination?.route.orEmpty()
+    val rutaSeleccionada = when {
+        current.startsWith("procedure/") -> Rutas.HOME
+        current == Rutas.HISTORY -> Rutas.PROFILE
+        else -> current
+    }
     val items = listOf(
-        ElementoBarraInferior(Rutas.HOME, stringResource(R.string.nav_home), R.drawable.ic_nav_inicio),
-        ElementoBarraInferior(Rutas.FAVORITES, stringResource(R.string.nav_favorites), R.drawable.ic_nav_favoritos),
-        ElementoBarraInferior(Rutas.REMINDERS, stringResource(R.string.nav_notifications), R.drawable.ic_nav_notificacion),
-        ElementoBarraInferior(Rutas.PROFILE, stringResource(R.string.nav_profile), R.drawable.ic_nav_perfil)
+        ElementoBarraInferior(Rutas.HOME, stringResource(R.string.nav_home), Icons.Default.Home),
+        ElementoBarraInferior(Rutas.FAVORITES, stringResource(R.string.nav_favorites), Icons.Default.Bookmark),
+        ElementoBarraInferior(Rutas.REMINDERS, stringResource(R.string.nav_notifications), Icons.Default.Notifications),
+        ElementoBarraInferior(Rutas.PROFILE, stringResource(R.string.nav_profile), Icons.Default.Person)
     )
     NavigationBar(
         containerColor = MaterialTheme.colorScheme.secondary,
@@ -2399,7 +2408,7 @@ private fun BarraInferiorPrincipal(navController: NavHostController) {
     ) {
         items.forEach { item ->
             NavigationBarItem(
-                selected = current == item.route,
+                selected = rutaSeleccionada == item.route,
                 onClick = {
                     navController.navigate(item.route) {
                         popUpTo(Rutas.HOME) { saveState = true }
@@ -2408,24 +2417,31 @@ private fun BarraInferiorPrincipal(navController: NavHostController) {
                     }
                 },
                 icon = {
-                    Image(
-                        painter = painterResource(item.iconRes),
-                        contentDescription = item.label,
-                        modifier = Modifier.size(24.dp),
-                        colorFilter = ColorFilter.tint(
-                            if (current == item.route) {
+                    if (item.route == Rutas.PROFILE) {
+                        AvatarUsuario(
+                            avatarId = avatarId,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .alpha(if (rutaSeleccionada == item.route) 1f else 0.72f)
+                        )
+                    } else {
+                        Icon(
+                            imageVector = item.icono,
+                            contentDescription = item.label,
+                            modifier = Modifier.size(24.dp),
+                            tint = if (rutaSeleccionada == item.route) {
                                 MaterialTheme.colorScheme.onSecondary
                             } else {
                                 MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.72f)
                             }
                         )
-                    )
+                    }
                 },
                 label = { Text(item.label, maxLines = 1) },
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onSecondary,
                     selectedTextColor = MaterialTheme.colorScheme.onSecondary,
-                    indicatorColor = Color.Transparent,
+                    indicatorColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.14f),
                     unselectedIconColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.72f),
                     unselectedTextColor = MaterialTheme.colorScheme.onSecondary.copy(alpha = 0.72f)
                 )
@@ -2437,7 +2453,7 @@ private fun BarraInferiorPrincipal(navController: NavHostController) {
 private data class ElementoBarraInferior(
     val route: String,
     val label: String,
-    @param:DrawableRes val iconRes: Int
+    val icono: ImageVector
 )
 
 private object Rutas {
@@ -2454,7 +2470,7 @@ private object Rutas {
 
 @Composable
 private fun cuerpoLegible(controlador: ControladorAsistenTed) =
-    if (controlador.configuracionAccesibilidad.textoGrande) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+    MaterialTheme.typography.bodyLarge
 
 @Composable
 private fun recordarLectorGuia(): LectorGuia {
