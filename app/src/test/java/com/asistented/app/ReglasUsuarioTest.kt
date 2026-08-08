@@ -3,6 +3,11 @@
 import com.asistented.app.datos.modelos.ElementoHistorial
 import com.asistented.app.datos.modelos.PerfilUsuario
 import com.asistented.app.datos.CatalogoTramites
+import com.asistented.app.datos.gobec.RepositorioCatalogoTramites
+import com.asistented.app.datos.gobec.SelectorTramitesGobEc
+import com.asistented.app.datos.gobec.TextoHtmlGobEc
+import com.asistented.app.datos.gobec.TramiteGobEcDto
+import com.asistented.app.datos.gobec.aTramite
 import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
@@ -153,6 +158,115 @@ class ReglasUsuarioTest {
         assertTrue(texto.contains(tramite.summary))
         assertTrue(tramite.steps.all { texto.contains(it.title) && texto.contains(it.textoAyuda) })
     }
+
+    @Test
+    fun limpiarHtmlGobEc_convierteContenidoALecturaSimple() {
+        val html = "<p>Requisito&nbsp;uno</p><ol><li>C&eacute;dula vigente</li></ol>"
+
+        val limpio = TextoHtmlGobEc.limpiar(html)
+
+        assertFalse(limpio.contains("<p>"))
+        assertTrue(limpio.contains("Requisito uno"))
+        assertTrue(limpio.contains("Cédula vigente"))
+    }
+
+    @Test
+    fun selectorGobEc_descartaTramitesQueNoSonCompletamenteEnLinea() {
+        val valido = tramiteGobEc("11745", "Emisión de Certificados y Actas Registrales")
+        val incompleto = tramiteGobEc(
+            id = "12371",
+            nombre = "Adquisición de certificado de Firma Electrónica",
+            completo = "No"
+        )
+
+        val seleccionados = SelectorTramitesGobEc.seleccionar(listOf(incompleto, valido))
+
+        assertEquals(listOf("11745"), seleccionados.map { it.tramiteId })
+    }
+
+    @Test
+    fun selectorGobEc_limitaAOchoTramitesPrioritarios() {
+        val candidatos = listOf(
+            tramiteGobEc("11745", "Emisión de Certificados y Actas Registrales", institucion = "23"),
+            tramiteGobEc("11247", "Emisión de certificado de antecedentes penales", institucion = "588"),
+            tramiteGobEc("11345", "Emisión de Certificado de Goce de Derechos Políticos", institucion = "413"),
+            tramiteGobEc("1002", "Certificado de Registro Único de Contribuyente (RUC)", institucion = "8"),
+            tramiteGobEc("15051", "Certificado de Autorización a terceros", institucion = "8"),
+            tramiteGobEc("12781", "Certificado de afiliación al IESS", institucion = "163"),
+            tramiteGobEc("12967", "Acceso a la información de historia laboral", institucion = "163"),
+            tramiteGobEc("3718", "Apostilla y legalización de documentos", institucion = "6"),
+            tramiteGobEc("4030", "Generación de claves SRI", institucion = "8")
+        )
+
+        val seleccionados = SelectorTramitesGobEc.seleccionar(candidatos)
+
+        assertEquals(8, seleccionados.size)
+        assertEquals("11745", seleccionados.first().tramiteId)
+        assertFalse(seleccionados.map { it.tramiteId }.contains("4030"))
+    }
+
+    @Test
+    fun tramiteGobEc_seMapeaConIdEstableEImagenOficial() {
+        val remoto = tramiteGobEc(
+            id = "1002",
+            nombre = "Certificado de Registro Único de Contribuyente (RUC)",
+            institucion = "8",
+            imagen = "https://www.gob.ec/sites/default/files/ruc.jpg",
+            requisitos = "<p>Cédula o RUC</p>"
+        ).aTramite()
+
+        assertEquals("gobec_1002", remoto.id)
+        assertEquals("SRI", remoto.institution)
+        assertEquals("https://www.gob.ec/sites/default/files/ruc.jpg", remoto.imagenUrl)
+        assertTrue(remoto.requisitosOficiales.orEmpty().contains("Cédula o RUC"))
+        assertTrue(remoto.steps.isNotEmpty())
+    }
+
+    @Test
+    fun combinarCatalogos_conservaLocalesCuandoNoHayInternet() {
+        val combinados = RepositorioCatalogoTramites.combinarCatalogos(
+            locales = CatalogoTramites.tramites,
+            remotos = emptyList()
+        )
+
+        assertEquals(CatalogoTramites.tramites.map { it.id }, combinados.map { it.id })
+    }
+
+    @Test
+    fun combinarCatalogos_usaCatalogoOficialCuandoExisteCacheORed() {
+        val remoto = tramiteGobEc("1002", "Certificado de Registro Único de Contribuyente (RUC)", institucion = "8").aTramite()
+
+        val combinados = RepositorioCatalogoTramites.combinarCatalogos(
+            locales = CatalogoTramites.tramites,
+            remotos = listOf(remoto)
+        )
+
+        assertEquals(listOf("gobec_1002"), combinados.map { it.id })
+    }
 }
+
+private fun tramiteGobEc(
+    id: String,
+    nombre: String,
+    institucion: String = "23",
+    completo: String = "Sí",
+    imagen: String = "https://www.gob.ec/sites/default/files/imagen.jpg",
+    requisitos: String = "<p>Cédula vigente</p>"
+) = TramiteGobEcDto(
+    tramiteId = id,
+    nombre = nombre,
+    url = "https://www.gob.ec/tramites/$id",
+    institucionId = institucion,
+    institucionUrl = "https://www.gob.ec/instituciones/$institucion",
+    imagenUrl = imagen,
+    descripcion = "<p>Descripción oficial del trámite.</p>",
+    requisitosObligatorios = requisitos,
+    requisitosEspeciales = "",
+    procedimiento = "<ol><li>Ingresar al portal.</li></ol>",
+    tramiteEnLineaUrl = "https://www.gob.ec/tramites/$id/webform",
+    tramiteEnLineaCompleto = completo,
+    costo = "No tiene costo",
+    modificado = "2026-08-08"
+)
 
 
