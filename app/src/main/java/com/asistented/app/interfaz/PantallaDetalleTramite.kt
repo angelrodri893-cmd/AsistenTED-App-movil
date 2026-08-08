@@ -181,7 +181,12 @@ internal fun PantallaDetalleTramiteRedisenada(
                     onAlternarExpandido = {
                         pasoExpandidoId = if (pasoExpandidoId == paso.id) null else paso.id
                     },
-                    onAlternarCompletado = { onAlternarPaso(paso) },
+                    onAlternarCompletado = {
+                        onAlternarPaso(paso)
+                        if (completado) {
+                            pasoExpandidoId = paso.id
+                        }
+                    },
                     onAlternarRevision = { indiceRevision ->
                         val actuales = revisionesMarcadas[paso.id].orEmpty()
                         val actualizados = if (indiceRevision in actuales) {

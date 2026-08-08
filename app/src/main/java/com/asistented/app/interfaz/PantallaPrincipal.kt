@@ -183,12 +183,12 @@ private fun EncabezadoPrincipal(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.home_greeting),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = nombreUsuario,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -289,7 +289,7 @@ private fun TarjetaTramitePrincipal(
     ) {
         Column(
             modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.img_plantilla_home),
@@ -316,7 +316,9 @@ private fun TarjetaTramitePrincipal(
                 text = tramite.institution,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = tramite.summary,

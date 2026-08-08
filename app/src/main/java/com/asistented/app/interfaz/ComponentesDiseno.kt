@@ -132,6 +132,7 @@ internal fun AccionesTarjetaTramite(
                 .weight(1f)
                 .height(DimensionesDiseno.altoAccion),
             shape = MaterialTheme.shapes.small,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary

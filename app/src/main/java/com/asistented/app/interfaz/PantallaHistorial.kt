@@ -154,7 +154,7 @@ private fun TarjetaHistorial(
     ) {
         Column(
             modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.img_plantilla_home),
@@ -176,7 +176,9 @@ private fun TarjetaHistorial(
             Text(
                 text = tramite.institution,
                 style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary
+                color = MaterialTheme.colorScheme.primary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = tramite.summary,

@@ -253,25 +253,7 @@ private fun ContenidoPerfilConsulta(
             )
         }
         item {
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(
-                    text = perfil?.nombreVisible.orEmpty().ifBlank { stringResource(R.string.profile_guest_name) },
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = stringResource(R.string.profile_username, perfil?.username.orEmpty()),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                HorizontalDivider(modifier = Modifier.padding(top = 4.dp))
-            }
+            ResumenPerfilConsulta(perfil = perfil, avatar = avatar)
         }
         if (esInvitado) {
             item {
@@ -326,7 +308,7 @@ private fun ContenidoPerfilConsulta(
             }
         }
         item {
-            TarjetaProposito(avatar = avatar)
+            TarjetaProposito()
         }
     }
 }
@@ -407,53 +389,90 @@ private fun CabeceraPerfil(
     avatar: AvatarPerfilVisual,
     onRegresar: () -> Unit
 ) {
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(132.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(88.dp),
-            color = MaterialTheme.colorScheme.secondary
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(56.dp),
-                verticalAlignment = Alignment.CenterVertically
+            IconButton(
+                onClick = onRegresar,
+                modifier = Modifier.size(DimensionesDiseno.objetivoTactil)
             ) {
-                IconButton(
-                    onClick = onRegresar,
-                    modifier = Modifier.size(DimensionesDiseno.objetivoTactil)
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.profile_cd_back),
-                        modifier = Modifier.size(DimensionesDiseno.iconoAccion)
-                    )
-                }
-                Text(
-                    text = titulo,
-                    modifier = Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = stringResource(R.string.profile_cd_back),
+                    modifier = Modifier.size(DimensionesDiseno.iconoAccion)
                 )
-                Spacer(Modifier.size(DimensionesDiseno.objetivoTactil))
+            }
+            Text(
+                text = titulo,
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Box(
+                modifier = Modifier
+                    .size(DimensionesDiseno.objetivoTactil)
+                    .background(MaterialTheme.colorScheme.surface, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                ImagenAvatar(
+                    avatar = avatar,
+                    modifier = Modifier.size(DimensionesDiseno.avatarEncabezado),
+                    seleccionado = false,
+                    mostrarMarca = false
+                )
             }
         }
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+@Composable
+private fun ResumenPerfilConsulta(
+    perfil: PerfilUsuario?,
+    avatar: AvatarPerfilVisual
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
         ImagenAvatar(
             avatar = avatar,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .size(90.dp),
+            modifier = Modifier.size(82.dp),
             seleccionado = true,
             mostrarMarca = false
         )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = perfil?.nombreVisible.orEmpty().ifBlank { stringResource(R.string.profile_guest_name) },
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = stringResource(R.string.profile_username, perfil?.username.orEmpty()),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
     }
 }
 
@@ -651,32 +670,21 @@ private fun OpcionAccesibilidad(
 }
 
 @Composable
-private fun TarjetaProposito(avatar: AvatarPerfilVisual) {
-    Row(
+private fun TarjetaProposito() {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        ImagenAvatar(
-            avatar = avatar,
-            modifier = Modifier.size(64.dp),
-            seleccionado = false
+        Text(
+            text = stringResource(R.string.profile_purpose),
+            modifier = Modifier.padding(14.dp),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Start
         )
-        Card(
-            modifier = Modifier.weight(1f),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-        ) {
-            Text(
-                text = stringResource(R.string.profile_purpose),
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
 
