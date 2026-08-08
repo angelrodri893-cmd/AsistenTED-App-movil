@@ -289,7 +289,7 @@ private fun TarjetaTramitePrincipal(
     ) {
         Column(
             modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.img_plantilla_home),
@@ -316,7 +316,9 @@ private fun TarjetaTramitePrincipal(
                 text = tramite.institution,
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
+                fontWeight = FontWeight.Medium,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = tramite.summary,

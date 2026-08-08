@@ -161,7 +161,7 @@ private fun TarjetaFavorito(
     ) {
         Column(
             modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.img_plantilla_home),
@@ -179,8 +179,8 @@ private fun TarjetaFavorito(
                 text = tramite.title,
                 style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium,
-                minLines = 3,
-                maxLines = 3,
+                minLines = 2,
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
