@@ -39,10 +39,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.asistented.app.R
+import com.asistented.app.datos.modelos.Tramite
 
 internal object DimensionesDiseno {
     val anchoContenido = 720.dp
@@ -163,6 +169,23 @@ internal fun AccionesTarjetaTramite(
             )
         }
     }
+}
+
+@Composable
+internal fun ImagenTramite(
+    tramite: Tramite,
+    modifier: Modifier = Modifier,
+    contentScale: ContentScale = ContentScale.Crop
+) {
+    AsyncImage(
+        model = tramite.imagenUrl?.takeIf { it.isNotBlank() },
+        contentDescription = stringResource(R.string.home_cd_procedure_illustration, tramite.title),
+        modifier = modifier,
+        placeholder = painterResource(R.drawable.img_plantilla_home),
+        error = painterResource(R.drawable.img_plantilla_home),
+        fallback = painterResource(R.drawable.img_plantilla_home),
+        contentScale = contentScale
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -76,6 +77,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -151,6 +153,15 @@ internal fun PantallaDetalleTramiteRedisenada(
                 )
             }
             item { PresentacionTramite(tramite = tramite) }
+            tramite.requisitosOficiales?.takeIf { it.isNotBlank() }?.let { requisitos ->
+                item {
+                    RequisitosOficialesTramite(
+                        requisitos = requisitos,
+                        fuente = tramite.fuenteOficial,
+                        actualizadoEn = tramite.actualizadoEn
+                    )
+                }
+            }
             item { AvisoPortalOficial(institucion = tramite.institution) }
             item {
                 AccionesDetalle(
@@ -258,6 +269,14 @@ private fun PresentacionTramite(tramite: Tramite) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        ImagenTramite(
+            tramite = tramite,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2.36f)
+                .clip(MaterialTheme.shapes.extraSmall),
+            contentScale = ContentScale.Crop
+        )
         Box(
             modifier = Modifier
                 .size(66.dp)
@@ -283,6 +302,43 @@ private fun PresentacionTramite(tramite: Tramite) {
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+    }
+}
+
+@Composable
+private fun RequisitosOficialesTramite(
+    requisitos: String,
+    fuente: String?,
+    actualizadoEn: String?
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = "Requisitos oficiales",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = requisitos,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (!fuente.isNullOrBlank() || !actualizadoEn.isNullOrBlank()) {
+                Text(
+                    text = listOfNotNull(fuente, actualizadoEn?.let { "Actualizado: $it" }).joinToString(" · "),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
     }
 }
 

@@ -156,9 +156,8 @@ private fun TarjetaHistorial(
             modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            Image(
-                painter = painterResource(R.drawable.img_plantilla_home),
-                contentDescription = stringResource(R.string.home_cd_procedure_illustration, tramite.title),
+            ImagenTramite(
+                tramite = tramite,
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(2.36f)
