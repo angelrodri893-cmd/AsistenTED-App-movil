@@ -183,12 +183,12 @@ private fun EncabezadoPrincipal(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = stringResource(R.string.home_greeting),
-                    style = MaterialTheme.typography.bodySmall,
+                    style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = nombreUsuario,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis

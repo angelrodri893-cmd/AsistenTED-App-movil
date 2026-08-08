@@ -308,7 +308,7 @@ private fun ContenidoPerfilConsulta(
             }
         }
         item {
-            TarjetaProposito(avatar = avatar)
+            TarjetaProposito()
         }
     }
 }
@@ -670,32 +670,21 @@ private fun OpcionAccesibilidad(
 }
 
 @Composable
-private fun TarjetaProposito(avatar: AvatarPerfilVisual) {
-    Row(
+private fun TarjetaProposito() {
+    Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 16.dp),
-        verticalAlignment = Alignment.Bottom,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
+        shape = MaterialTheme.shapes.small,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        ImagenAvatar(
-            avatar = avatar,
-            modifier = Modifier.size(64.dp),
-            seleccionado = false
+        Text(
+            text = stringResource(R.string.profile_purpose),
+            modifier = Modifier.padding(14.dp),
+            style = MaterialTheme.typography.bodySmall,
+            textAlign = TextAlign.Start
         )
-        Card(
-            modifier = Modifier.weight(1f),
-            shape = MaterialTheme.shapes.small,
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-        ) {
-            Text(
-                text = stringResource(R.string.profile_purpose),
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center
-            )
-        }
     }
 }
 
