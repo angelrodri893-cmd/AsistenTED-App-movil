@@ -136,6 +136,7 @@ import com.asistented.app.datos.modelos.ElementoHistorial
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.datos.modelos.Recordatorio
 import com.asistented.app.datos.modelos.PerfilUsuario
+import com.asistented.app.datos.gobec.RepositorioCatalogoTramites
 import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
@@ -143,6 +144,9 @@ import com.asistented.app.interfaz.tema.TemaAsistenTED
 import com.asistented.app.notificaciones.ProgramadorRecordatorios
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -159,9 +163,13 @@ class ControladorAsistenTed(context: Context) {
     private val repositorioAutenticacion = RepositorioAutenticacion()
     private val repositorioUsuario = RepositorioUsuario()
     private val repositorioForo = RepositorioForo()
+    private val repositorioCatalogo = RepositorioCatalogoTramites(preferenciasLocales)
     private val programadorRecordatorios = ProgramadorRecordatorios(appContext)
+    private val alcanceTrabajo = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    val tramites = CatalogoTramites.tramites
+    val tramites = mutableStateListOf<Tramite>().apply {
+        addAll(repositorioCatalogo.cargarCatalogoConCache())
+    }
     val favoritos = mutableStateListOf<String>()
     val historial = mutableStateListOf<ElementoHistorial>()
     val recordatorios = mutableStateListOf<Recordatorio>()
@@ -188,6 +196,7 @@ class ControladorAsistenTed(context: Context) {
         private set
 
     init {
+        refrescarCatalogoTramites()
         repositorioAutenticacion.usuarioActual { perfil ->
             perfil?.let { establecerUsuarioRegistrado(it) }
         }
@@ -199,6 +208,20 @@ class ControladorAsistenTed(context: Context) {
 
     fun mostrarMensaje(text: String) {
         mensaje = text
+    }
+
+    fun buscarTramite(id: String): Tramite? =
+        tramites.firstOrNull { it.id == id } ?: CatalogoTramites.buscarTramite(id)
+
+    private fun refrescarCatalogoTramites() {
+        if (!repositorioCatalogo.requiereRefresco()) return
+        alcanceTrabajo.launch {
+            runCatching { repositorioCatalogo.refrescarCatalogo() }
+                .onSuccess { catalogoActualizado ->
+                    tramites.clear()
+                    tramites.addAll(catalogoActualizado)
+                }
+        }
     }
 
     fun entrarComoInvitado() {
@@ -666,7 +689,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 arguments = listOf(navArgument("tramiteId") { type = NavType.StringType })
             ) { entry ->
                 val tramiteId = entry.arguments?.getString("tramiteId").orEmpty()
-                CatalogoTramites.buscarTramite(tramiteId)?.let { tramite ->
+                controlador.buscarTramite(tramiteId)?.let { tramite ->
                     val contexto = LocalContext.current
                     val lector = recordarLectorGuia()
                     val textoGuia = remember(tramite.id) { construirTextoGuia(tramite) }
@@ -691,7 +714,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                             }
                         },
                         onAbrirPortal = {
-                            contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tramite.urlOficial)))
+                            contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tramite.urlTramiteEnLinea ?: tramite.urlOficial)))
                         },
                         onAlternarLectura = {
                             if (lector.isSpeaking) lector.detener() else lector.leer(textoGuia)
@@ -2338,7 +2361,7 @@ private fun SelectorTramite(tramites: List<Tramite>, selectedId: String, onSelec
 
 @Composable
 private fun TarjetaRecordatorio(reminder: Recordatorio, controlador: ControladorAsistenTed) {
-    val procedure = CatalogoTramites.buscarTramite(reminder.tramiteId)
+    val procedure = controlador.buscarTramite(reminder.tramiteId)
     Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
