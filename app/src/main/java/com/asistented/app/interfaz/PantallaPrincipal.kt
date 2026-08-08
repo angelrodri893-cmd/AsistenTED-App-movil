@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -65,6 +66,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.asistented.app.R
 import com.asistented.app.datos.CatalogoTramites
+import com.asistented.app.datos.modelos.ConfiguracionAccesibilidad
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.interfaz.tema.TemaAsistenTED
 
@@ -81,10 +83,10 @@ private data class FiltroInstitucion(
 @Composable
 internal fun PantallaPrincipal(
     nombreUsuario: String,
+    avatarId: String,
     tramites: List<Tramite>,
     favoritos: Set<String>,
     mostrarAvisoInicial: Boolean,
-    textoGrande: Boolean,
     onAbrirTramite: (Tramite) -> Unit,
     onAlternarFavorito: (Tramite) -> Unit,
     onAbrirPerfil: () -> Unit,
@@ -102,14 +104,20 @@ internal fun PantallaPrincipal(
         LazyColumn(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .widthIn(max = 720.dp)
+                .widthIn(max = DimensionesDiseno.anchoContenido)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 14.dp, top = 2.dp, end = 14.dp, bottom = 18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(
+                start = DimensionesDiseno.margenPantalla,
+                top = 4.dp,
+                end = DimensionesDiseno.margenPantalla,
+                bottom = 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(DimensionesDiseno.espacioPantalla)
         ) {
             item {
                 EncabezadoPrincipal(
                     nombreUsuario = nombreUsuario,
+                    avatarId = avatarId,
                     onAbrirPerfil = onAbrirPerfil
                 )
             }
@@ -133,7 +141,6 @@ internal fun PantallaPrincipal(
                     TarjetaTramitePrincipal(
                         tramite = tramite,
                         esFavorito = tramite.id in favoritos,
-                        textoGrande = textoGrande,
                         onAbrir = { onAbrirTramite(tramite) },
                         onAlternarFavorito = { onAlternarFavorito(tramite) }
                     )
@@ -165,9 +172,10 @@ internal fun filtrarTramites(
 @Composable
 private fun EncabezadoPrincipal(
     nombreUsuario: String,
+    avatarId: String,
     onAbrirPerfil: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -189,13 +197,12 @@ private fun EncabezadoPrincipal(
             IconButton(
                 onClick = onAbrirPerfil,
                 modifier = Modifier
-                    .size(40.dp)
+                    .size(DimensionesDiseno.objetivoTactil)
                     .background(MaterialTheme.colorScheme.surface, CircleShape)
             ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_home_usuario),
-                    contentDescription = stringResource(R.string.home_cd_open_profile),
-                    modifier = Modifier.size(24.dp)
+                AvatarUsuario(
+                    avatarId = avatarId,
+                    modifier = Modifier.size(DimensionesDiseno.avatarEncabezado)
                 )
             }
         }
@@ -214,7 +221,7 @@ private fun CampoBusquedaPrincipal(
         onValueChange = onConsultaChange,
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        shape = RoundedCornerShape(6.dp),
+        shape = MaterialTheme.shapes.small,
         placeholder = { Text(stringResource(R.string.home_search_placeholder)) },
         leadingIcon = {
             Icon(
@@ -228,13 +235,7 @@ private fun CampoBusquedaPrincipal(
         } else {
             null
         },
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            errorBorderColor = MaterialTheme.colorScheme.error,
-            focusedLeadingIconColor = MaterialTheme.colorScheme.primary,
-            errorLeadingIconColor = MaterialTheme.colorScheme.error
-        )
+        colors = coloresCampoDiseno()
     )
 }
 
@@ -277,19 +278,18 @@ private fun FiltrosInstitucion(
 private fun TarjetaTramitePrincipal(
     tramite: Tramite,
     esFavorito: Boolean,
-    textoGrande: Boolean,
     onAbrir: () -> Unit,
     onAlternarFavorito: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(7.dp),
+        shape = MaterialTheme.shapes.small,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(7.dp)
+            modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Image(
                 painter = painterResource(R.drawable.img_plantilla_home),
@@ -299,15 +299,18 @@ private fun TarjetaTramitePrincipal(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(120.dp)
-                    .clip(RoundedCornerShape(6.dp)),
+                    .aspectRatio(2.36f)
+                    .clip(MaterialTheme.shapes.extraSmall),
                 contentScale = ContentScale.Crop
             )
             Text(
                 text = tramite.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Medium,
-                lineHeight = MaterialTheme.typography.titleMedium.lineHeight
+                lineHeight = MaterialTheme.typography.titleMedium.lineHeight,
+                minLines = 2,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = tramite.institution,
@@ -317,52 +320,20 @@ private fun TarjetaTramitePrincipal(
             )
             Text(
                 text = tramite.summary,
-                style = if (textoGrande) {
-                    MaterialTheme.typography.bodyLarge
-                } else {
-                    MaterialTheme.typography.bodySmall
-                }
+                style = MaterialTheme.typography.bodySmall,
+                minLines = 3,
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Button(
-                    onClick = onAbrir,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 12.dp)
-                ) {
-                    Text(
-                        text = stringResource(R.string.home_view_guide),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-                OutlinedIconButton(
-                    onClick = onAlternarFavorito,
-                    modifier = Modifier.size(42.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    colors = IconButtonDefaults.outlinedIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Icon(
-                        imageVector = if (esFavorito) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        contentDescription = stringResource(
-                            if (esFavorito) R.string.home_cd_remove_favorite else R.string.home_cd_add_favorite
-                        )
-                    )
-                }
-            }
+            AccionesTarjetaTramite(
+                esFavorito = esFavorito,
+                textoAccion = stringResource(R.string.home_view_guide),
+                descripcionFavorito = stringResource(
+                    if (esFavorito) R.string.home_cd_remove_favorite else R.string.home_cd_add_favorite
+                ),
+                onAbrir = onAbrir,
+                onAlternarFavorito = onAlternarFavorito
+            )
         }
     }
 }
@@ -393,57 +364,12 @@ private fun EstadoSinResultados() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvisoInicialPrincipal(onDescartarAviso: () -> Unit) {
-    val sheetState = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { it != SheetValue.Hidden }
+    AvisoModalDiseno(
+        mensaje = stringResource(R.string.home_welcome_help),
+        textoBoton = stringResource(R.string.home_do_not_remind),
+        descripcionIcono = stringResource(R.string.home_cd_welcome_help),
+        onContinuar = onDescartarAviso
     )
-    ModalBottomSheet(
-        onDismissRequest = {},
-        sheetState = sheetState,
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        tonalElevation = 0.dp,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(start = 28.dp, top = 26.dp, end = 28.dp, bottom = 24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(18.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.SentimentSatisfiedAlt,
-                contentDescription = stringResource(R.string.home_cd_welcome_help),
-                modifier = Modifier.size(58.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(R.string.home_welcome_help),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Button(
-                onClick = onDescartarAviso,
-                modifier = Modifier
-                    .widthIn(max = 270.dp)
-                    .fillMaxWidth()
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(
-                    text = stringResource(R.string.home_do_not_remind),
-                    style = MaterialTheme.typography.labelMedium
-                )
-            }
-        }
-    }
 }
 
 @Preview(name = "Principal compacta", showBackground = true, widthDp = 360, heightDp = 800)
@@ -470,14 +396,25 @@ private fun PreviewPantallaPrincipalAmplia() {
     }
 }
 
+@Preview(name = "Principal 320 texto grande", showBackground = true, widthDp = 320, heightDp = 800)
+@Composable
+private fun PreviewPantallaPrincipalTextoGrande() {
+    TemaAsistenTED(
+        darkTheme = false,
+        configuracionAccesibilidad = ConfiguracionAccesibilidad(textoGrande = true)
+    ) {
+        PantallaPrincipalPreview()
+    }
+}
+
 @Composable
 private fun PantallaPrincipalPreview(mostrarAvisoInicial: Boolean = false) {
     PantallaPrincipal(
         nombreUsuario = "Alexis Rodriguez",
+        avatarId = "avatar_1",
         tramites = CatalogoTramites.tramites,
         favoritos = setOf("licencia"),
         mostrarAvisoInicial = mostrarAvisoInicial,
-        textoGrande = false,
         onAbrirTramite = {},
         onAlternarFavorito = {},
         onAbrirPerfil = {},

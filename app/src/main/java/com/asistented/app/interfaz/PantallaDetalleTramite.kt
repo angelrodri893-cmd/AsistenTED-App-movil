@@ -8,6 +8,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -40,7 +42,6 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lightbulb
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SentimentSatisfiedAlt
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.Button
@@ -101,8 +102,8 @@ internal fun PantallaDetalleTramiteRedisenada(
     pasosCompletados: Set<String>,
     comentarios: List<ComentarioForo>,
     usuarioActualId: String?,
+    avatarId: String,
     puedeParticipar: Boolean,
-    textoGrande: Boolean,
     mostrarAvisoInicial: Boolean,
     estaLeyendo: Boolean,
     onRegresar: () -> Unit,
@@ -131,19 +132,25 @@ internal fun PantallaDetalleTramiteRedisenada(
         LazyColumn(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .widthIn(max = 720.dp)
+                .widthIn(max = DimensionesDiseno.anchoContenido)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
+            contentPadding = PaddingValues(
+                start = DimensionesDiseno.margenPantalla,
+                top = 4.dp,
+                end = DimensionesDiseno.margenPantalla,
+                bottom = 24.dp
+            ),
+            verticalArrangement = Arrangement.spacedBy(DimensionesDiseno.espacioPantalla)
         ) {
             item {
                 EncabezadoDetalle(
                     tramite = tramite,
+                    avatarId = avatarId,
                     onRegresar = onRegresar,
                     onAbrirPerfil = onAbrirPerfil
                 )
             }
-            item { PresentacionTramite(tramite = tramite, textoGrande = textoGrande) }
+            item { PresentacionTramite(tramite = tramite) }
             item { AvisoPortalOficial(institucion = tramite.institution) }
             item {
                 AccionesDetalle(
@@ -166,7 +173,6 @@ internal fun PantallaDetalleTramiteRedisenada(
                     completado = completado,
                     expandido = paso.id == pasoExpandidoId,
                     esUltimo = indice == tramite.steps.lastIndex,
-                    textoGrande = textoGrande,
                     revisionesMarcadas = if (completado) {
                         paso.elementosRevision.indices.toSet()
                     } else {
@@ -227,45 +233,21 @@ internal fun construirTextoGuia(tramite: Tramite): String = buildString {
 @Composable
 private fun EncabezadoDetalle(
     tramite: Tramite,
+    avatarId: String,
     onRegresar: () -> Unit,
     onAbrirPerfil: () -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        IconButton(onClick = onRegresar, modifier = Modifier.size(42.dp)) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                contentDescription = stringResource(R.string.detail_cd_back),
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-        Text(
-            text = stringResource(R.string.detail_guide_title, nombreCortoTramite(tramite.id)),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        IconButton(
-            onClick = onAbrirPerfil,
-            modifier = Modifier
-                .size(42.dp)
-                .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape)
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = stringResource(R.string.detail_cd_profile)
-            )
-        }
-    }
+    EncabezadoPantalla(
+        titulo = stringResource(R.string.detail_guide_title, nombreCortoTramite(tramite.id)),
+        descripcionRegresar = stringResource(R.string.detail_cd_back),
+        avatarId = avatarId,
+        onRegresar = onRegresar,
+        onAbrirPerfil = onAbrirPerfil
+    )
 }
 
 @Composable
-private fun PresentacionTramite(tramite: Tramite, textoGrande: Boolean) {
+private fun PresentacionTramite(tramite: Tramite) {
     Column(
         modifier = Modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -292,7 +274,7 @@ private fun PresentacionTramite(tramite: Tramite, textoGrande: Boolean) {
         )
         Text(
             text = tramite.summary,
-            style = if (textoGrande) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+            style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -303,7 +285,7 @@ private fun PresentacionTramite(tramite: Tramite, textoGrande: Boolean) {
 private fun AvisoPortalOficial(institucion: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
@@ -339,7 +321,7 @@ private fun AccionesDetalle(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
@@ -354,7 +336,7 @@ private fun AccionesDetalle(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(56.dp),
-            shape = RoundedCornerShape(28.dp),
+            shape = MaterialTheme.shapes.extraLarge,
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.secondary,
                 contentColor = MaterialTheme.colorScheme.onSecondary
@@ -411,7 +393,6 @@ private fun PasoDetalle(
     completado: Boolean,
     expandido: Boolean,
     esUltimo: Boolean,
-    textoGrande: Boolean,
     revisionesMarcadas: Set<Int>,
     onAlternarExpandido: () -> Unit,
     onAlternarCompletado: () -> Unit,
@@ -429,33 +410,38 @@ private fun PasoDetalle(
     ) {
         Column(
             modifier = Modifier
-                .width(36.dp)
+                .width(DimensionesDiseno.objetivoTactil)
                 .fillMaxHeight(),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Surface(
-                onClick = onAlternarCompletado,
+            Box(
                 modifier = Modifier
-                    .size(32.dp)
+                    .size(DimensionesDiseno.objetivoTactil)
+                    .clickable(onClick = onAlternarCompletado)
                     .semantics { contentDescription = descripcionAlternarPaso },
-                shape = CircleShape,
-                color = if (completado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
-                border = BorderStroke(2.dp, if (completado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+                contentAlignment = Alignment.Center
             ) {
-                Box(contentAlignment = Alignment.Center) {
-                    if (completado) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = stringResource(R.string.detail_cd_step_complete, indice + 1),
-                            modifier = Modifier.size(18.dp),
-                            tint = MaterialTheme.colorScheme.onPrimary
-                        )
-                    } else {
-                        Text(
-                            text = (indice + 1).toString(),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                Surface(
+                    modifier = Modifier.size(32.dp),
+                    shape = CircleShape,
+                    color = if (completado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
+                    border = BorderStroke(2.dp, if (completado) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        if (completado) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.onPrimary
+                            )
+                        } else {
+                            Text(
+                                text = (indice + 1).toString(),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
             }
@@ -493,7 +479,7 @@ private fun PasoDetalle(
             if (expandido) {
                 Text(
                     text = paso.description,
-                    style = if (textoGrande) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium
                 )
                 TarjetaConsejo(texto = paso.textoAyuda)
                 paso.elementosRevision.forEachIndexed { indiceRevision, revision ->
@@ -526,12 +512,12 @@ private fun PasoDetalle(
 private fun TarjetaConsejo(texto: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
         Column(
-            modifier = Modifier.padding(14.dp),
+            modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -599,8 +585,8 @@ private fun SeccionComentariosDetalle(
                 },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(46.dp),
-                shape = RoundedCornerShape(8.dp),
+                    .height(DimensionesDiseno.altoAccion),
+                shape = MaterialTheme.shapes.small,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.onSecondary
@@ -612,7 +598,7 @@ private fun SeccionComentariosDetalle(
             Card(colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)) {
                 Text(
                     text = stringResource(R.string.detail_guest_forum),
-                    modifier = Modifier.padding(14.dp),
+                    modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
                     style = MaterialTheme.typography.bodyMedium
                 )
             }
@@ -726,6 +712,7 @@ private fun SeccionComentariosDetalle(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TarjetaComentarioDetalle(
     comentario: ComentarioForo,
@@ -750,7 +737,7 @@ private fun TarjetaComentarioDetalle(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(10.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = CardDefaults.cardColors(
             containerColor = if (esRespuesta) {
                 MaterialTheme.colorScheme.secondaryContainer
@@ -790,7 +777,7 @@ private fun TarjetaComentarioDetalle(
                     mensajeError = stringResource(R.string.detail_error_edit),
                     isError = errorEdicion
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onGuardarEdicion) { Text(stringResource(R.string.detail_save)) }
                     TextButton(onClick = onCancelarEdicion) { Text(stringResource(R.string.detail_cancel)) }
                 }
@@ -799,7 +786,7 @@ private fun TarjetaComentarioDetalle(
                     text = comentario.text,
                     style = MaterialTheme.typography.bodyMedium
                 )
-                Row(
+                FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
@@ -836,7 +823,7 @@ private fun TarjetaComentarioDetalle(
                     mensajeError = stringResource(R.string.detail_error_reply),
                     isError = errorRespuesta
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     TextButton(onClick = onEnviarRespuesta) { Text(stringResource(R.string.detail_send)) }
                     TextButton(onClick = onCancelarRespuesta) { Text(stringResource(R.string.detail_cancel)) }
                 }
@@ -874,70 +861,24 @@ private fun CampoComentarioDetalle(
         onValueChange = onValorChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(etiqueta) },
+        shape = MaterialTheme.shapes.small,
         minLines = minLineas,
         maxLines = 6,
         isError = isError,
         supportingText = if (isError) ({ Text(mensajeError) }) else null,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            errorBorderColor = MaterialTheme.colorScheme.error,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            errorLabelColor = MaterialTheme.colorScheme.error
-        )
+        colors = coloresCampoDiseno()
     )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvisoInicialDetalle(onDescartar: () -> Unit) {
-    val estadoHoja = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { it != SheetValue.Hidden }
+    AvisoModalDiseno(
+        mensaje = stringResource(R.string.detail_welcome_help),
+        textoBoton = stringResource(R.string.home_do_not_remind),
+        descripcionIcono = stringResource(R.string.detail_cd_welcome_help),
+        onContinuar = onDescartar
     )
-    ModalBottomSheet(
-        onDismissRequest = {},
-        sheetState = estadoHoja,
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        dragHandle = null
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .navigationBarsPadding()
-                .padding(horizontal = 28.dp, vertical = 28.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(20.dp)
-        ) {
-            Icon(
-                imageVector = Icons.Default.SentimentSatisfiedAlt,
-                contentDescription = stringResource(R.string.detail_cd_welcome_help),
-                modifier = Modifier.size(56.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = stringResource(R.string.detail_welcome_help),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold,
-                textAlign = TextAlign.Center
-            )
-            Button(
-                onClick = onDescartar,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .widthIn(max = 270.dp)
-                    .height(48.dp),
-                shape = RoundedCornerShape(24.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
-            ) {
-                Text(stringResource(R.string.home_do_not_remind), style = MaterialTheme.typography.labelMedium)
-            }
-        }
-    }
 }
 
 @StringRes
@@ -1011,8 +952,8 @@ private fun DetallePreview(mostrarAviso: Boolean = false) {
         pasosCompletados = setOf("preparar"),
         comentarios = comentariosPreview,
         usuarioActualId = "usuario-preview",
+        avatarId = "avatar_1",
         puedeParticipar = true,
-        textoGrande = false,
         mostrarAvisoInicial = mostrarAviso,
         estaLeyendo = false,
         onRegresar = {},

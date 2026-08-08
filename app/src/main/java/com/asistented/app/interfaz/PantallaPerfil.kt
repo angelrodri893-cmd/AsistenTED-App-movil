@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -98,6 +99,20 @@ private val avataresPerfil = listOf(
 )
 
 @Composable
+internal fun AvatarUsuario(
+    avatarId: String,
+    modifier: Modifier = Modifier
+) {
+    val avatar = avataresPerfil.firstOrNull { it.id == avatarId } ?: avataresPerfil.first()
+    ImagenAvatar(
+        avatar = avatar,
+        modifier = modifier,
+        seleccionado = false,
+        mostrarMarca = false
+    )
+}
+
+@Composable
 internal fun PantallaPerfilRedisenada(
     perfil: PerfilUsuario?,
     configuracion: ConfiguracionAccesibilidad,
@@ -161,7 +176,7 @@ private fun PantallaPerfilBase(
         Box(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .widthIn(max = 720.dp)
+                .widthIn(max = DimensionesDiseno.anchoContenido)
                 .fillMaxSize()
         ) {
             if (modo == ModoPantallaPerfil.Consulta) {
@@ -228,7 +243,7 @@ private fun ContenidoPerfilConsulta(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 18.dp)
+        contentPadding = PaddingValues(bottom = 24.dp)
     ) {
         item {
             CabeceraPerfil(
@@ -266,7 +281,7 @@ private fun ContenidoPerfilConsulta(
                 ) {
                     Text(
                         text = stringResource(R.string.profile_guest_message),
-                        modifier = Modifier.padding(14.dp),
+                        modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
@@ -330,7 +345,7 @@ private fun ContenidoEdicionPerfil(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 18.dp),
+        contentPadding = PaddingValues(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         item {
@@ -372,8 +387,8 @@ private fun ContenidoEdicionPerfil(
                     onClick = onGuardar,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(48.dp),
-                    shape = RoundedCornerShape(8.dp),
+                        .height(DimensionesDiseno.altoAccion),
+                    shape = MaterialTheme.shapes.small,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.secondary,
                         contentColor = MaterialTheme.colorScheme.onSecondary
@@ -403,26 +418,32 @@ private fun CabeceraPerfil(
                 .height(88.dp),
             color = MaterialTheme.colorScheme.secondary
         ) {
-            Box {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(
                     onClick = onRegresar,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(start = 4.dp, top = 4.dp)
+                    modifier = Modifier.size(DimensionesDiseno.objetivoTactil)
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = stringResource(R.string.profile_cd_back)
+                        contentDescription = stringResource(R.string.profile_cd_back),
+                        modifier = Modifier.size(DimensionesDiseno.iconoAccion)
                     )
                 }
                 Text(
                     text = titulo,
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 17.dp),
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    textAlign = TextAlign.Center,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
+                Spacer(Modifier.size(DimensionesDiseno.objetivoTactil))
             }
         }
         ImagenAvatar(
@@ -450,15 +471,10 @@ private fun CampoPerfil(
         modifier = Modifier.fillMaxWidth(),
         label = { Text(etiqueta) },
         singleLine = true,
+        shape = MaterialTheme.shapes.small,
         isError = isError,
         supportingText = if (isError) ({ Text(mensajeError) }) else null,
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline,
-            errorBorderColor = MaterialTheme.colorScheme.error,
-            focusedLabelColor = MaterialTheme.colorScheme.primary,
-            errorLabelColor = MaterialTheme.colorScheme.error
-        )
+        colors = coloresCampoDiseno()
     )
 }
 
@@ -467,35 +483,40 @@ private fun SelectorAvataresPerfil(
     avatarSeleccionadoId: String,
     onSeleccionar: (AvatarPerfilVisual) -> Unit
 ) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = 520.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    Box(
+        modifier = Modifier.fillMaxWidth(),
+        contentAlignment = Alignment.Center
     ) {
-        Column(
-            modifier = Modifier.padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        Card(
+            modifier = Modifier
+                .widthIn(max = 520.dp)
+                .fillMaxWidth(),
+            shape = MaterialTheme.shapes.medium,
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
-            // Las filas con pesos iguales se adaptan al ancho disponible sin coordenadas absolutas.
-            avataresPerfil.chunked(3).forEach { filaAvatares ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    filaAvatares.forEach { avatar ->
-                        ImagenAvatar(
-                            avatar = avatar,
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clickable { onSeleccionar(avatar) },
-                            seleccionado = avatar.id == avatarSeleccionadoId
-                        )
+            Column(
+                modifier = Modifier.padding(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Las filas con pesos iguales se adaptan al ancho disponible sin coordenadas absolutas.
+                avataresPerfil.chunked(3).forEach { filaAvatares ->
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        filaAvatares.forEach { avatar ->
+                            ImagenAvatar(
+                                avatar = avatar,
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clickable { onSeleccionar(avatar) },
+                                seleccionado = avatar.id == avatarSeleccionadoId
+                            )
+                        }
+                        repeat(3 - filaAvatares.size) { Spacer(Modifier.weight(1f)) }
                     }
-                    repeat(3 - filaAvatares.size) { Spacer(Modifier.weight(1f)) }
                 }
             }
         }
@@ -556,7 +577,8 @@ private fun OpcionPerfil(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(enabled = habilitada, onClick = onClick)
-            .padding(vertical = 10.dp),
+            .heightIn(min = DimensionesDiseno.objetivoTactil)
+            .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
@@ -610,7 +632,9 @@ private fun OpcionAccesibilidad(
     onCambio: (Boolean) -> Unit
 ) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = DimensionesDiseno.objetivoTactil),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(texto, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
@@ -642,7 +666,7 @@ private fun TarjetaProposito(avatar: AvatarPerfilVisual) {
         )
         Card(
             modifier = Modifier.weight(1f),
-            shape = RoundedCornerShape(8.dp),
+            shape = MaterialTheme.shapes.small,
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
         ) {
@@ -659,94 +683,24 @@ private fun TarjetaProposito(avatar: AvatarPerfilVisual) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvisoInicialPerfil(onDescartar: () -> Unit) {
-    val estadoHoja = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { it != SheetValue.Hidden }
+    AvisoModalDiseno(
+        mensaje = stringResource(R.string.profile_welcome_help),
+        textoBoton = stringResource(R.string.home_do_not_remind),
+        descripcionIcono = stringResource(R.string.profile_cd_welcome_help),
+        onContinuar = onDescartar
     )
-    ModalBottomSheet(
-        onDismissRequest = {},
-        sheetState = estadoHoja,
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        dragHandle = null
-    ) {
-        ContenidoAvisoPerfil(
-            icono = Icons.Default.SentimentSatisfiedAlt,
-            descripcionIcono = stringResource(R.string.profile_cd_welcome_help),
-            mensaje = stringResource(R.string.profile_welcome_help),
-            textoBoton = stringResource(R.string.home_do_not_remind),
-            onContinuar = onDescartar
-        )
-    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvisoPerfilGuardado(onContinuar: () -> Unit) {
-    val estadoHoja = rememberModalBottomSheetState(
-        skipPartiallyExpanded = true,
-        confirmValueChange = { it != SheetValue.Hidden }
+    AvisoModalDiseno(
+        mensaje = stringResource(R.string.profile_changes_saved),
+        textoBoton = stringResource(R.string.profile_continue),
+        descripcionIcono = stringResource(R.string.profile_cd_saved),
+        onContinuar = onContinuar,
+        iconoConfirmacion = true
     )
-    ModalBottomSheet(
-        onDismissRequest = {},
-        sheetState = estadoHoja,
-        containerColor = MaterialTheme.colorScheme.secondary,
-        contentColor = MaterialTheme.colorScheme.onSecondary,
-        dragHandle = null
-    ) {
-        ContenidoAvisoPerfil(
-            icono = Icons.Default.Check,
-            descripcionIcono = stringResource(R.string.profile_cd_saved),
-            mensaje = stringResource(R.string.profile_changes_saved),
-            textoBoton = stringResource(R.string.profile_continue),
-            onContinuar = onContinuar
-        )
-    }
-}
-
-@Composable
-private fun ContenidoAvisoPerfil(
-    icono: androidx.compose.ui.graphics.vector.ImageVector,
-    descripcionIcono: String,
-    mensaje: String,
-    textoBoton: String,
-    onContinuar: () -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .navigationBarsPadding()
-            .padding(horizontal = 28.dp, vertical = 28.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(22.dp)
-    ) {
-        Icon(
-            imageVector = icono,
-            contentDescription = descripcionIcono,
-            modifier = Modifier.size(56.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        Text(
-            text = mensaje,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-            textAlign = TextAlign.Center
-        )
-        Button(
-            onClick = onContinuar,
-            modifier = Modifier
-                .fillMaxWidth()
-                .widthIn(max = 270.dp)
-                .height(48.dp),
-            shape = RoundedCornerShape(24.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            )
-        ) {
-            Text(textoBoton, style = MaterialTheme.typography.labelMedium)
-        }
-    }
 }
 
 private val perfilPreview = PerfilUsuario(
@@ -787,16 +741,29 @@ private fun PreviewPerfilAmplio() {
     TemaAsistenTED(darkTheme = false) { PerfilPreviewBase(accesibilidadExpandida = true) }
 }
 
+@Preview(name = "Perfil alto contraste y texto grande", showBackground = true, widthDp = 320, heightDp = 800)
+@Composable
+private fun PreviewPerfilAccesible() {
+    val configuracion = ConfiguracionAccesibilidad(textoGrande = true, altoContraste = true)
+    TemaAsistenTED(darkTheme = false, configuracionAccesibilidad = configuracion) {
+        PerfilPreviewBase(
+            accesibilidadExpandida = true,
+            configuracion = configuracion
+        )
+    }
+}
+
 @Composable
 private fun PerfilPreviewBase(
     modoInicial: ModoPantallaPerfil = ModoPantallaPerfil.Consulta,
     mostrarAviso: Boolean = false,
     accesibilidadExpandida: Boolean = false,
-    mostrarConfirmacion: Boolean = false
+    mostrarConfirmacion: Boolean = false,
+    configuracion: ConfiguracionAccesibilidad = ConfiguracionAccesibilidad()
 ) {
     PantallaPerfilBase(
         perfil = perfilPreview,
-        configuracion = ConfiguracionAccesibilidad(),
+        configuracion = configuracion,
         mostrarAvisoInicial = mostrarAviso,
         onRegresar = {},
         onGuardarPerfil = { _, _, _, resultado -> resultado(true) },

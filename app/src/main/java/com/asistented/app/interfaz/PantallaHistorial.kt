@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -43,8 +44,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -62,7 +65,7 @@ internal fun PantallaHistorialRedisenada(
     tramites: List<Tramite>,
     idsHistorial: List<String>,
     favoritos: Set<String>,
-    textoGrande: Boolean,
+    avatarId: String,
     onRegresar: () -> Unit,
     onAbrirPerfil: () -> Unit,
     onAbrirTramite: (Tramite) -> Unit,
@@ -78,14 +81,23 @@ internal fun PantallaHistorialRedisenada(
             columns = GridCells.Adaptive(minSize = 280.dp),
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .widthIn(max = 720.dp)
+                .widthIn(max = DimensionesDiseno.anchoContenido)
                 .fillMaxSize(),
-            contentPadding = PaddingValues(start = 14.dp, top = 2.dp, end = 14.dp, bottom = 18.dp),
+            contentPadding = PaddingValues(
+                start = DimensionesDiseno.margenPantalla,
+                top = 4.dp,
+                end = DimensionesDiseno.margenPantalla,
+                bottom = 24.dp
+            ),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             item(span = { GridItemSpan(maxLineSpan) }) {
-                EncabezadoHistorial(onRegresar = onRegresar, onAbrirPerfil = onAbrirPerfil)
+                EncabezadoHistorial(
+                    avatarId = avatarId,
+                    onRegresar = onRegresar,
+                    onAbrirPerfil = onAbrirPerfil
+                )
             }
             if (tramitesHistorial.isEmpty()) {
                 item(span = { GridItemSpan(maxLineSpan) }) { EstadoHistorialVacio() }
@@ -94,7 +106,6 @@ internal fun PantallaHistorialRedisenada(
                     TarjetaHistorial(
                         tramite = tramite,
                         esFavorito = tramite.id in favoritos,
-                        textoGrande = textoGrande,
                         onAbrir = { onAbrirTramite(tramite) },
                         onAlternarFavorito = { onAlternarFavorito(tramite) }
                     )
@@ -115,76 +126,50 @@ internal fun seleccionarTramitesHistorial(
 
 @Composable
 private fun EncabezadoHistorial(
+    avatarId: String,
     onRegresar: () -> Unit,
     onAbrirPerfil: () -> Unit
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = onRegresar, modifier = Modifier.size(40.dp)) {
-                Image(
-                    painter = painterResource(R.drawable.ic_favoritos_regresar),
-                    contentDescription = stringResource(R.string.profile_cd_back),
-                    modifier = Modifier.size(24.dp),
-                    colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.onBackground)
-                )
-            }
-            Text(
-                text = stringResource(R.string.history_title),
-                modifier = Modifier.weight(1f),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                textAlign = TextAlign.Center
-            )
-            IconButton(
-                onClick = onAbrirPerfil,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(MaterialTheme.colorScheme.surface, CircleShape)
-            ) {
-                Image(
-                    painter = painterResource(R.drawable.ic_home_usuario),
-                    contentDescription = stringResource(R.string.home_cd_open_profile),
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-    }
+    EncabezadoPantalla(
+        titulo = stringResource(R.string.history_title),
+        descripcionRegresar = stringResource(R.string.profile_cd_back),
+        avatarId = avatarId,
+        onRegresar = onRegresar,
+        onAbrirPerfil = onAbrirPerfil
+    )
 }
 
 @Composable
 private fun TarjetaHistorial(
     tramite: Tramite,
     esFavorito: Boolean,
-    textoGrande: Boolean,
     onAbrir: () -> Unit,
     onAlternarFavorito: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        shape = MaterialTheme.shapes.small,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
     ) {
         Column(
-            modifier = Modifier.padding(12.dp),
+            modifier = Modifier.padding(DimensionesDiseno.paddingTarjeta),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = iconoTramiteHistorial(tramite.id),
+            Image(
+                painter = painterResource(R.drawable.img_plantilla_home),
                 contentDescription = stringResource(R.string.home_cd_procedure_illustration, tramite.title),
                 modifier = Modifier
-                    .align(Alignment.CenterHorizontally)
-                    .size(54.dp),
-                tint = MaterialTheme.colorScheme.primary
+                    .fillMaxWidth()
+                    .aspectRatio(2.36f)
+                    .clip(MaterialTheme.shapes.extraSmall),
+                contentScale = ContentScale.Crop
             )
             Text(
                 text = tramite.title,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
+                minLines = 2,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis
             )
@@ -195,41 +180,20 @@ private fun TarjetaHistorial(
             )
             Text(
                 text = tramite.summary,
-                style = if (textoGrande) MaterialTheme.typography.titleSmall else MaterialTheme.typography.bodySmall,
-                maxLines = if (textoGrande) 4 else 3,
+                style = MaterialTheme.typography.bodySmall,
+                minLines = 3,
+                maxLines = 3,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Button(
-                    onClick = onAbrir,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(42.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondary,
-                        contentColor = MaterialTheme.colorScheme.onSecondary
-                    )
-                ) {
-                    Text(stringResource(R.string.home_view_guide), maxLines = 1)
-                }
-                OutlinedIconButton(
-                    onClick = onAlternarFavorito,
-                    modifier = Modifier.size(42.dp),
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                ) {
-                    Icon(
-                        imageVector = if (esFavorito) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                        contentDescription = stringResource(
-                            if (esFavorito) R.string.home_cd_remove_favorite else R.string.home_cd_add_favorite
-                        )
-                    )
-                }
-            }
+            AccionesTarjetaTramite(
+                esFavorito = esFavorito,
+                textoAccion = stringResource(R.string.home_view_guide),
+                descripcionFavorito = stringResource(
+                    if (esFavorito) R.string.home_cd_remove_favorite else R.string.home_cd_add_favorite
+                ),
+                onAbrir = onAbrir,
+                onAlternarFavorito = onAlternarFavorito
+            )
         }
     }
 }
@@ -303,7 +267,7 @@ private fun HistorialPreview(ids: List<String>) {
         tramites = CatalogoTramites.tramites,
         idsHistorial = ids,
         favoritos = setOf("cedula"),
-        textoGrande = false,
+        avatarId = "avatar_1",
         onRegresar = {},
         onAbrirPerfil = {},
         onAbrirTramite = {},
