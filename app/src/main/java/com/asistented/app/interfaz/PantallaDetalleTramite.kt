@@ -1,11 +1,13 @@
 package com.asistented.app.interfaz
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -39,6 +41,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lightbulb
@@ -76,6 +80,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -120,6 +125,8 @@ internal fun PantallaDetalleTramiteRedisenada(
 ) {
     val primerPasoPendiente = tramite.steps.firstOrNull { it.id !in pasosCompletados }?.id
     var pasoExpandidoId by rememberSaveable(tramite.id) { mutableStateOf(primerPasoPendiente) }
+    var requisitosExpandidos by rememberSaveable(tramite.id) { mutableStateOf(false) }
+    var costoExpandido by rememberSaveable(tramite.id) { mutableStateOf(false) }
     val revisionesMarcadas = remember(tramite.id) { mutableStateMapOf<String, Set<Int>>() }
 
     LaunchedEffect(pasosCompletados) {
@@ -151,6 +158,35 @@ internal fun PantallaDetalleTramiteRedisenada(
                 )
             }
             item { PresentacionTramite(tramite = tramite) }
+            tramite.requisitosOficiales?.takeIf { it.isNotBlank() }?.let { requisitos ->
+                item(key = "requisitos_${tramite.id}") {
+                    InformacionOficialDesplegable(
+                        titulo = stringResource(R.string.detail_official_requirements),
+                        contenido = requisitos,
+                        expandido = requisitosExpandidos,
+                        fuente = tramite.fuenteOficial,
+                        actualizadoEn = tramite.actualizadoEn,
+                        onAlternar = { requisitosExpandidos = !requisitosExpandidos }
+                    )
+                }
+            }
+            tramite.costoOficial?.takeIf { it.isNotBlank() }?.let { costo ->
+                item(key = "costo_${tramite.id}") {
+                    val contenidoCosto = when {
+                        costo.equals("Sí", ignoreCase = true) -> stringResource(R.string.detail_has_cost)
+                        costo.equals("No", ignoreCase = true) -> stringResource(R.string.detail_no_cost)
+                        else -> costo
+                    }
+                    InformacionOficialDesplegable(
+                        titulo = stringResource(R.string.detail_official_cost),
+                        contenido = contenidoCosto,
+                        expandido = costoExpandido,
+                        fuente = tramite.fuenteOficial,
+                        actualizadoEn = tramite.actualizadoEn,
+                        onAlternar = { costoExpandido = !costoExpandido }
+                    )
+                }
+            }
             item { AvisoPortalOficial(institucion = tramite.institution) }
             item {
                 AccionesDetalle(
@@ -158,6 +194,9 @@ internal fun PantallaDetalleTramiteRedisenada(
                     onAbrirPortal = onAbrirPortal,
                     onAlternarLectura = onAlternarLectura
                 )
+            }
+            item {
+                EncabezadoProcedimientoOficial(totalPasos = tramite.steps.size)
             }
             item {
                 ProgresoDetalle(
@@ -228,6 +267,8 @@ internal fun calcularProgresoDetalle(completados: Int, total: Int): Float =
 internal fun construirTextoGuia(tramite: Tramite): String = buildString {
     append(tramite.title).append(". ")
     append(tramite.summary).append(". ")
+    tramite.requisitosOficiales?.let { append("Requisitos oficiales. ").append(it).append(". ") }
+    tramite.costoOficial?.let { append("Información de costo. ").append(it).append(". ") }
     tramite.steps.forEach { paso ->
         append(paso.title).append(". ")
         append(paso.description).append(". ")
@@ -258,6 +299,20 @@ private fun PresentacionTramite(tramite: Tramite) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
+        ImagenTramite(
+            tramite = tramite,
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(2.36f)
+                .clip(MaterialTheme.shapes.extraSmall),
+            contentScale = ContentScale.Crop
+        )
+        Text(
+            text = tramite.title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
         Box(
             modifier = Modifier
                 .size(66.dp)
@@ -281,6 +336,92 @@ private fun PresentacionTramite(tramite: Tramite) {
             text = tramite.summary,
             style = MaterialTheme.typography.bodyLarge,
             textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun InformacionOficialDesplegable(
+    titulo: String,
+    contenido: String,
+    expandido: Boolean,
+    fuente: String?,
+    actualizadoEn: String?,
+    onAlternar: () -> Unit
+) {
+    val descripcionAccion = stringResource(
+        if (expandido) R.string.detail_collapse_official_section else R.string.detail_expand_official_section,
+        titulo
+    )
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onAlternar)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Text(
+                    text = titulo,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Icon(
+                    imageVector = if (expandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = descripcionAccion,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+            AnimatedVisibility(visible = expandido) {
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text(
+                        text = contenido,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!fuente.isNullOrBlank() || !actualizadoEn.isNullOrBlank()) {
+                        Text(
+                            text = listOfNotNull(
+                                fuente,
+                                actualizadoEn?.let { "Actualizado: $it" }
+                            ).joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun EncabezadoProcedimientoOficial(totalPasos: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.detail_official_procedure),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = stringResource(R.string.detail_official_steps_count, totalPasos),
+            style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }

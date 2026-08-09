@@ -136,6 +136,7 @@ import com.asistented.app.datos.modelos.ElementoHistorial
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.datos.modelos.Recordatorio
 import com.asistented.app.datos.modelos.PerfilUsuario
+import com.asistented.app.datos.gobec.RepositorioCatalogoTramites
 import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.dominio.ReglasProgreso
 import com.asistented.app.dominio.ReglasContenidoUsuario
@@ -143,6 +144,9 @@ import com.asistented.app.interfaz.tema.TemaAsistenTED
 import com.asistented.app.notificaciones.ProgramadorRecordatorios
 import com.google.firebase.auth.FirebaseAuthException
 import com.google.firebase.auth.FirebaseAuthUserCollisionException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -159,9 +163,13 @@ class ControladorAsistenTed(context: Context) {
     private val repositorioAutenticacion = RepositorioAutenticacion()
     private val repositorioUsuario = RepositorioUsuario()
     private val repositorioForo = RepositorioForo()
+    private val repositorioCatalogo = RepositorioCatalogoTramites(preferenciasLocales)
     private val programadorRecordatorios = ProgramadorRecordatorios(appContext)
+    private val alcanceTrabajo = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    val tramites = CatalogoTramites.tramites
+    val tramites = mutableStateListOf<Tramite>().apply {
+        addAll(repositorioCatalogo.cargarCatalogoConCache())
+    }
     val favoritos = mutableStateListOf<String>()
     val historial = mutableStateListOf<ElementoHistorial>()
     val recordatorios = mutableStateListOf<Recordatorio>()
@@ -173,6 +181,8 @@ class ControladorAsistenTed(context: Context) {
     var configuracionAccesibilidad by mutableStateOf(preferenciasLocales.cargarAccesibilidad())
         private set
     var cargando by mutableStateOf(false)
+        private set
+    var actualizandoCatalogo by mutableStateOf(false)
         private set
     var mensaje by mutableStateOf<String?>(null)
         private set
@@ -188,6 +198,7 @@ class ControladorAsistenTed(context: Context) {
         private set
 
     init {
+        actualizarCatalogoGobEc(forzar = false)
         repositorioAutenticacion.usuarioActual { perfil ->
             perfil?.let { establecerUsuarioRegistrado(it) }
         }
@@ -199,6 +210,28 @@ class ControladorAsistenTed(context: Context) {
 
     fun mostrarMensaje(text: String) {
         mensaje = text
+    }
+
+    fun buscarTramite(id: String): Tramite? =
+        tramites.firstOrNull { it.id == id } ?: CatalogoTramites.buscarTramite(id)
+
+    fun actualizarCatalogoGobEc(forzar: Boolean = true) {
+        if (actualizandoCatalogo || (!forzar && !repositorioCatalogo.requiereRefresco())) return
+        actualizandoCatalogo = true
+        alcanceTrabajo.launch {
+            runCatching { repositorioCatalogo.refrescarCatalogo() }
+                .onSuccess { catalogoActualizado ->
+                    tramites.clear()
+                    tramites.addAll(catalogoActualizado)
+                    if (forzar && catalogoActualizado.none { it.apiId != null }) {
+                        mensaje = "No se pudo actualizar Gob.Ec. Se mantienen las guías disponibles sin conexión."
+                    }
+                }
+                .onFailure {
+                    if (forzar) mensaje = "No se pudo conectar con Gob.Ec. Inténtalo nuevamente."
+                }
+            actualizandoCatalogo = false
+        }
     }
 
     fun entrarComoInvitado() {
@@ -638,11 +671,14 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 .ocultarTecladoAlTocarFuera()
         ) {
             composable(Rutas.HOME) {
+                val tramitesActuales = controlador.tramites.toList()
                 PantallaPrincipal(
                     nombreUsuario = controlador.usuarioActual?.nombreVisible.orEmpty(),
                     avatarId = avatarIdActual,
-                    tramites = controlador.tramites,
+                    tramites = tramitesActuales,
                     favoritos = controlador.favoritos.toSet(),
+                    actualizandoCatalogo = controlador.actualizandoCatalogo,
+                    usandoCatalogoOficial = tramitesActuales.any { it.apiId != null },
                     mostrarAvisoInicial = controlador.mostrarAyudaPrincipal,
                     onAbrirTramite = { tramite ->
                         controlador.marcarConsultado(tramite.id)
@@ -658,7 +694,8 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                             restoreState = true
                         }
                     },
-                    onDescartarAviso = controlador::descartarAyudaPrincipal
+                    onDescartarAviso = controlador::descartarAyudaPrincipal,
+                    onActualizarCatalogo = controlador::actualizarCatalogoGobEc
                 )
             }
             composable(
@@ -666,7 +703,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 arguments = listOf(navArgument("tramiteId") { type = NavType.StringType })
             ) { entry ->
                 val tramiteId = entry.arguments?.getString("tramiteId").orEmpty()
-                CatalogoTramites.buscarTramite(tramiteId)?.let { tramite ->
+                controlador.buscarTramite(tramiteId)?.let { tramite ->
                     val contexto = LocalContext.current
                     val lector = recordarLectorGuia()
                     val textoGuia = remember(tramite.id) { construirTextoGuia(tramite) }
@@ -691,7 +728,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                             }
                         },
                         onAbrirPortal = {
-                            contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tramite.urlOficial)))
+                            contexto.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(tramite.urlTramiteEnLinea ?: tramite.urlOficial)))
                         },
                         onAlternarLectura = {
                             if (lector.isSpeaking) lector.detener() else lector.leer(textoGuia)
@@ -707,7 +744,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
             }
             composable(Rutas.FAVORITES) {
                 PantallaFavoritos(
-                    tramites = controlador.tramites,
+                    tramites = controlador.tramites.toList(),
                     favoritos = controlador.favoritos.toSet(),
                     avatarId = avatarIdActual,
                     mostrarAvisoInicial = controlador.mostrarAyudaFavoritos,
@@ -731,7 +768,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
             }
             composable(Rutas.HISTORY) {
                 PantallaHistorialRedisenada(
-                    tramites = controlador.tramites,
+                    tramites = controlador.tramites.toList(),
                     idsHistorial = controlador.historial.map { it.tramiteId },
                     favoritos = controlador.favoritos.toSet(),
                     avatarId = avatarIdActual,
@@ -748,7 +785,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 val context = LocalContext.current
                 val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
                 PantallaNotificaciones(
-                    tramites = controlador.tramites,
+                    tramites = controlador.tramites.toList(),
                     recordatorios = controlador.recordatorios.toList(),
                     avatarId = avatarIdActual,
                     esInvitado = controlador.usuarioActual?.esInvitado == true,
@@ -2338,7 +2375,7 @@ private fun SelectorTramite(tramites: List<Tramite>, selectedId: String, onSelec
 
 @Composable
 private fun TarjetaRecordatorio(reminder: Recordatorio, controlador: ControladorAsistenTed) {
-    val procedure = CatalogoTramites.buscarTramite(reminder.tramiteId)
+    val procedure = controlador.buscarTramite(reminder.tramiteId)
     Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
         Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)

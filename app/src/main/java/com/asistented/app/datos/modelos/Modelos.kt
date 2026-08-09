@@ -37,7 +37,15 @@ data class Tramite(
     val summary: String,
     val category: String,
     val urlOficial: String,
-    val steps: List<PasoGuia>
+    val steps: List<PasoGuia>,
+    val apiId: String? = null,
+    val imagenUrl: String? = null,
+    val requisitosOficiales: String? = null,
+    val procedimientoOficial: String? = null,
+    val costoOficial: String? = null,
+    val urlTramiteEnLinea: String? = null,
+    val actualizadoEn: String? = null,
+    val fuenteOficial: String? = null
 )
 
 data class ElementoHistorial(
