@@ -1,6 +1,7 @@
 package com.asistented.app.interfaz
 
 import androidx.annotation.StringRes
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -40,6 +41,8 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.DirectionsCar
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Lightbulb
@@ -122,6 +125,8 @@ internal fun PantallaDetalleTramiteRedisenada(
 ) {
     val primerPasoPendiente = tramite.steps.firstOrNull { it.id !in pasosCompletados }?.id
     var pasoExpandidoId by rememberSaveable(tramite.id) { mutableStateOf(primerPasoPendiente) }
+    var requisitosExpandidos by rememberSaveable(tramite.id) { mutableStateOf(false) }
+    var costoExpandido by rememberSaveable(tramite.id) { mutableStateOf(false) }
     val revisionesMarcadas = remember(tramite.id) { mutableStateMapOf<String, Set<Int>>() }
 
     LaunchedEffect(pasosCompletados) {
@@ -153,13 +158,32 @@ internal fun PantallaDetalleTramiteRedisenada(
                 )
             }
             item { PresentacionTramite(tramite = tramite) }
-            if (!tramite.requisitosOficiales.isNullOrBlank() || !tramite.costoOficial.isNullOrBlank()) {
-                item {
-                    InformacionOficialTramite(
-                        requisitos = tramite.requisitosOficiales,
-                        costo = tramite.costoOficial,
+            tramite.requisitosOficiales?.takeIf { it.isNotBlank() }?.let { requisitos ->
+                item(key = "requisitos_${tramite.id}") {
+                    InformacionOficialDesplegable(
+                        titulo = stringResource(R.string.detail_official_requirements),
+                        contenido = requisitos,
+                        expandido = requisitosExpandidos,
                         fuente = tramite.fuenteOficial,
-                        actualizadoEn = tramite.actualizadoEn
+                        actualizadoEn = tramite.actualizadoEn,
+                        onAlternar = { requisitosExpandidos = !requisitosExpandidos }
+                    )
+                }
+            }
+            tramite.costoOficial?.takeIf { it.isNotBlank() }?.let { costo ->
+                item(key = "costo_${tramite.id}") {
+                    val contenidoCosto = when {
+                        costo.equals("Sí", ignoreCase = true) -> stringResource(R.string.detail_has_cost)
+                        costo.equals("No", ignoreCase = true) -> stringResource(R.string.detail_no_cost)
+                        else -> costo
+                    }
+                    InformacionOficialDesplegable(
+                        titulo = stringResource(R.string.detail_official_cost),
+                        contenido = contenidoCosto,
+                        expandido = costoExpandido,
+                        fuente = tramite.fuenteOficial,
+                        actualizadoEn = tramite.actualizadoEn,
+                        onAlternar = { costoExpandido = !costoExpandido }
                     )
                 }
             }
@@ -318,12 +342,18 @@ private fun PresentacionTramite(tramite: Tramite) {
 }
 
 @Composable
-private fun InformacionOficialTramite(
-    requisitos: String?,
-    costo: String?,
+private fun InformacionOficialDesplegable(
+    titulo: String,
+    contenido: String,
+    expandido: Boolean,
     fuente: String?,
-    actualizadoEn: String?
+    actualizadoEn: String?,
+    onAlternar: () -> Unit
 ) {
+    val descripcionAccion = stringResource(
+        if (expandido) R.string.detail_collapse_official_section else R.string.detail_expand_official_section,
+        titulo
+    )
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -331,44 +361,51 @@ private fun InformacionOficialTramite(
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            requisitos?.takeIf { it.isNotBlank() }?.let {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onAlternar)
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 Text(
-                    text = stringResource(R.string.detail_official_requirements),
+                    text = titulo,
+                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
-                Text(
-                    text = it,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Icon(
+                    imageVector = if (expandido) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                    contentDescription = descripcionAccion,
+                    tint = MaterialTheme.colorScheme.primary
                 )
             }
-            costo?.takeIf { it.isNotBlank() }?.let {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Text(
-                    text = stringResource(R.string.detail_official_cost),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = when {
-                        it.equals("Sí", ignoreCase = true) -> stringResource(R.string.detail_has_cost)
-                        it.equals("No", ignoreCase = true) -> stringResource(R.string.detail_no_cost)
-                        else -> it
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (!fuente.isNullOrBlank() || !actualizadoEn.isNullOrBlank()) {
-                Text(
-                    text = listOfNotNull(fuente, actualizadoEn?.let { "Actualizado: $it" }).joinToString(" · "),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
+            AnimatedVisibility(visible = expandido) {
+                Column(
+                    modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    Text(
+                        text = contenido,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    if (!fuente.isNullOrBlank() || !actualizadoEn.isNullOrBlank()) {
+                        Text(
+                            text = listOfNotNull(
+                                fuente,
+                                actualizadoEn?.let { "Actualizado: $it" }
+                            ).joinToString(" · "),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
             }
         }
     }

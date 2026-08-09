@@ -145,6 +145,8 @@
     <string name="detail_progress">Tu progreso</string>
     <string name="detail_official_requirements">Requisitos oficiales</string>
     <string name="detail_official_cost">Costo informado por Gob.Ec</string>
+    <string name="detail_expand_official_section">Mostrar %1$s</string>
+    <string name="detail_collapse_official_section">Ocultar %1$s</string>
     <string name="detail_has_cost">Este tr&#225;mite tiene costo. Confirma el valor vigente en el portal oficial.</string>
     <string name="detail_no_cost">Gob.Ec indica que este tr&#225;mite no tiene costo.</string>
     <string name="detail_official_procedure">Procedimiento oficial</string>
