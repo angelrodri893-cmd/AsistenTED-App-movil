@@ -37,6 +37,11 @@
     <string name="home_search_placeholder">Buscar</string>
     <string name="home_search_error">No encontramos tr&#225;mites que coincidan.</string>
     <string name="home_filter_all">Todos</string>
+    <string name="home_catalog_updating">Actualizando informaci&#243;n oficial...</string>
+    <string name="home_catalog_official">Informaci&#243;n oficial de Gob.Ec</string>
+    <string name="home_catalog_offline">Gu&#237;as disponibles sin conexi&#243;n</string>
+    <string name="home_catalog_count">%1$d tr&#225;mites disponibles</string>
+    <string name="home_cd_refresh_catalog">Actualizar cat&#225;logo oficial</string>
     <string name="home_filter_registro_civil">Registro Civil</string>
     <string name="home_filter_sri">SRI</string>
     <string name="home_filter_ant">ANT</string>
@@ -138,6 +143,12 @@
     <string name="detail_listen_guide">Escuchar gu&#237;a</string>
     <string name="detail_stop_guide">Detener gu&#237;a</string>
     <string name="detail_progress">Tu progreso</string>
+    <string name="detail_official_requirements">Requisitos oficiales</string>
+    <string name="detail_official_cost">Costo informado por Gob.Ec</string>
+    <string name="detail_has_cost">Este tr&#225;mite tiene costo. Confirma el valor vigente en el portal oficial.</string>
+    <string name="detail_no_cost">Gob.Ec indica que este tr&#225;mite no tiene costo.</string>
+    <string name="detail_official_procedure">Procedimiento oficial</string>
+    <string name="detail_official_steps_count">%1$d pasos obtenidos del procedimiento publicado en Gob.Ec.</string>
     <string name="detail_progress_count">%1$d de %2$d pasos</string>
     <string name="detail_step_title">Paso %1$d: %2$s</string>
     <string name="detail_advice">Consejo</string>

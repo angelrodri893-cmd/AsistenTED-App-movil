@@ -153,10 +153,11 @@ internal fun PantallaDetalleTramiteRedisenada(
                 )
             }
             item { PresentacionTramite(tramite = tramite) }
-            tramite.requisitosOficiales?.takeIf { it.isNotBlank() }?.let { requisitos ->
+            if (!tramite.requisitosOficiales.isNullOrBlank() || !tramite.costoOficial.isNullOrBlank()) {
                 item {
-                    RequisitosOficialesTramite(
-                        requisitos = requisitos,
+                    InformacionOficialTramite(
+                        requisitos = tramite.requisitosOficiales,
+                        costo = tramite.costoOficial,
                         fuente = tramite.fuenteOficial,
                         actualizadoEn = tramite.actualizadoEn
                     )
@@ -169,6 +170,9 @@ internal fun PantallaDetalleTramiteRedisenada(
                     onAbrirPortal = onAbrirPortal,
                     onAlternarLectura = onAlternarLectura
                 )
+            }
+            item {
+                EncabezadoProcedimientoOficial(totalPasos = tramite.steps.size)
             }
             item {
                 ProgresoDetalle(
@@ -239,6 +243,8 @@ internal fun calcularProgresoDetalle(completados: Int, total: Int): Float =
 internal fun construirTextoGuia(tramite: Tramite): String = buildString {
     append(tramite.title).append(". ")
     append(tramite.summary).append(". ")
+    tramite.requisitosOficiales?.let { append("Requisitos oficiales. ").append(it).append(". ") }
+    tramite.costoOficial?.let { append("Información de costo. ").append(it).append(". ") }
     tramite.steps.forEach { paso ->
         append(paso.title).append(". ")
         append(paso.description).append(". ")
@@ -277,6 +283,12 @@ private fun PresentacionTramite(tramite: Tramite) {
                 .clip(MaterialTheme.shapes.extraSmall),
             contentScale = ContentScale.Crop
         )
+        Text(
+            text = tramite.title,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center
+        )
         Box(
             modifier = Modifier
                 .size(66.dp)
@@ -306,8 +318,9 @@ private fun PresentacionTramite(tramite: Tramite) {
 }
 
 @Composable
-private fun RequisitosOficialesTramite(
-    requisitos: String,
+private fun InformacionOficialTramite(
+    requisitos: String?,
+    costo: String?,
     fuente: String?,
     actualizadoEn: String?
 ) {
@@ -321,16 +334,35 @@ private fun RequisitosOficialesTramite(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = "Requisitos oficiales",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = requisitos,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            requisitos?.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = stringResource(R.string.detail_official_requirements),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            costo?.takeIf { it.isNotBlank() }?.let {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Text(
+                    text = stringResource(R.string.detail_official_cost),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = when {
+                        it.equals("Sí", ignoreCase = true) -> stringResource(R.string.detail_has_cost)
+                        it.equals("No", ignoreCase = true) -> stringResource(R.string.detail_no_cost)
+                        else -> it
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             if (!fuente.isNullOrBlank() || !actualizadoEn.isNullOrBlank()) {
                 Text(
                     text = listOfNotNull(fuente, actualizadoEn?.let { "Actualizado: $it" }).joinToString(" · "),
@@ -339,6 +371,22 @@ private fun RequisitosOficialesTramite(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun EncabezadoProcedimientoOficial(totalPasos: Int) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(
+            text = stringResource(R.string.detail_official_procedure),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold
+        )
+        Text(
+            text = stringResource(R.string.detail_official_steps_count, totalPasos),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

@@ -182,6 +182,8 @@ class ControladorAsistenTed(context: Context) {
         private set
     var cargando by mutableStateOf(false)
         private set
+    var actualizandoCatalogo by mutableStateOf(false)
+        private set
     var mensaje by mutableStateOf<String?>(null)
         private set
     var mostrarAyudaPrincipal by mutableStateOf(false)
@@ -196,7 +198,7 @@ class ControladorAsistenTed(context: Context) {
         private set
 
     init {
-        refrescarCatalogoTramites()
+        actualizarCatalogoGobEc(forzar = false)
         repositorioAutenticacion.usuarioActual { perfil ->
             perfil?.let { establecerUsuarioRegistrado(it) }
         }
@@ -213,14 +215,22 @@ class ControladorAsistenTed(context: Context) {
     fun buscarTramite(id: String): Tramite? =
         tramites.firstOrNull { it.id == id } ?: CatalogoTramites.buscarTramite(id)
 
-    private fun refrescarCatalogoTramites() {
-        if (!repositorioCatalogo.requiereRefresco()) return
+    fun actualizarCatalogoGobEc(forzar: Boolean = true) {
+        if (actualizandoCatalogo || (!forzar && !repositorioCatalogo.requiereRefresco())) return
+        actualizandoCatalogo = true
         alcanceTrabajo.launch {
             runCatching { repositorioCatalogo.refrescarCatalogo() }
                 .onSuccess { catalogoActualizado ->
                     tramites.clear()
                     tramites.addAll(catalogoActualizado)
+                    if (forzar && catalogoActualizado.none { it.apiId != null }) {
+                        mensaje = "No se pudo actualizar Gob.Ec. Se mantienen las guías disponibles sin conexión."
+                    }
                 }
+                .onFailure {
+                    if (forzar) mensaje = "No se pudo conectar con Gob.Ec. Inténtalo nuevamente."
+                }
+            actualizandoCatalogo = false
         }
     }
 
@@ -661,11 +671,14 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 .ocultarTecladoAlTocarFuera()
         ) {
             composable(Rutas.HOME) {
+                val tramitesActuales = controlador.tramites.toList()
                 PantallaPrincipal(
                     nombreUsuario = controlador.usuarioActual?.nombreVisible.orEmpty(),
                     avatarId = avatarIdActual,
-                    tramites = controlador.tramites,
+                    tramites = tramitesActuales,
                     favoritos = controlador.favoritos.toSet(),
+                    actualizandoCatalogo = controlador.actualizandoCatalogo,
+                    usandoCatalogoOficial = tramitesActuales.any { it.apiId != null },
                     mostrarAvisoInicial = controlador.mostrarAyudaPrincipal,
                     onAbrirTramite = { tramite ->
                         controlador.marcarConsultado(tramite.id)
@@ -681,7 +694,8 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                             restoreState = true
                         }
                     },
-                    onDescartarAviso = controlador::descartarAyudaPrincipal
+                    onDescartarAviso = controlador::descartarAyudaPrincipal,
+                    onActualizarCatalogo = controlador::actualizarCatalogoGobEc
                 )
             }
             composable(
@@ -730,7 +744,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
             }
             composable(Rutas.FAVORITES) {
                 PantallaFavoritos(
-                    tramites = controlador.tramites,
+                    tramites = controlador.tramites.toList(),
                     favoritos = controlador.favoritos.toSet(),
                     avatarId = avatarIdActual,
                     mostrarAvisoInicial = controlador.mostrarAyudaFavoritos,
@@ -754,7 +768,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
             }
             composable(Rutas.HISTORY) {
                 PantallaHistorialRedisenada(
-                    tramites = controlador.tramites,
+                    tramites = controlador.tramites.toList(),
                     idsHistorial = controlador.historial.map { it.tramiteId },
                     favoritos = controlador.favoritos.toSet(),
                     avatarId = avatarIdActual,
@@ -771,7 +785,7 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                 val context = LocalContext.current
                 val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
                 PantallaNotificaciones(
-                    tramites = controlador.tramites,
+                    tramites = controlador.tramites.toList(),
                     recordatorios = controlador.recordatorios.toList(),
                     avatarId = avatarIdActual,
                     esInvitado = controlador.usuarioActual?.esInvitado == true,

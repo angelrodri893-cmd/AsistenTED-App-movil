@@ -24,6 +24,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SentimentSatisfiedAlt
 import androidx.compose.material.icons.filled.Warning
@@ -31,6 +34,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -47,12 +51,12 @@ import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.annotation.StringRes
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,15 +74,6 @@ import com.asistented.app.datos.modelos.ConfiguracionAccesibilidad
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.interfaz.tema.TemaAsistenTED
 
-private const val INSTITUCION_REGISTRO_CIVIL = "Registro Civil"
-private const val INSTITUCION_SRI = "SRI"
-private const val INSTITUCION_ANT = "ANT"
-
-private data class FiltroInstitucion(
-    val institucion: String?,
-    @param:StringRes val etiquetaRes: Int
-)
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun PantallaPrincipal(
@@ -87,10 +82,13 @@ internal fun PantallaPrincipal(
     tramites: List<Tramite>,
     favoritos: Set<String>,
     mostrarAvisoInicial: Boolean,
+    actualizandoCatalogo: Boolean,
+    usandoCatalogoOficial: Boolean,
     onAbrirTramite: (Tramite) -> Unit,
     onAlternarFavorito: (Tramite) -> Unit,
     onAbrirPerfil: () -> Unit,
     onDescartarAviso: () -> Unit,
+    onActualizarCatalogo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var consulta by rememberSaveable { mutableStateOf("") }
@@ -99,6 +97,13 @@ internal fun PantallaPrincipal(
         filtrarTramites(tramites, consulta, institucionSeleccionada)
     }
     val busquedaSinResultados = consulta.isNotBlank() && tramitesFiltrados.isEmpty()
+    val instituciones = tramites.map(Tramite::institution).filter(String::isNotBlank).distinct()
+
+    LaunchedEffect(instituciones, institucionSeleccionada) {
+        if (institucionSeleccionada != null && institucionSeleccionada !in instituciones) {
+            institucionSeleccionada = null
+        }
+    }
 
     Box(modifier = modifier.fillMaxSize()) {
         LazyColumn(
@@ -122,6 +127,14 @@ internal fun PantallaPrincipal(
                 )
             }
             item {
+                EstadoCatalogoPrincipal(
+                    actualizando = actualizandoCatalogo,
+                    usandoCatalogoOficial = usandoCatalogoOficial,
+                    cantidadTramites = tramites.size,
+                    onActualizar = onActualizarCatalogo
+                )
+            }
+            item {
                 CampoBusquedaPrincipal(
                     consulta = consulta,
                     onConsultaChange = { consulta = it },
@@ -130,6 +143,7 @@ internal fun PantallaPrincipal(
             }
             item {
                 FiltrosInstitucion(
+                    instituciones = instituciones,
                     institucionSeleccionada = institucionSeleccionada,
                     onSeleccionar = { institucionSeleccionada = it }
                 )
@@ -241,27 +255,23 @@ private fun CampoBusquedaPrincipal(
 
 @Composable
 private fun FiltrosInstitucion(
+    instituciones: List<String>,
     institucionSeleccionada: String?,
     onSeleccionar: (String?) -> Unit
 ) {
-    val filtros = listOf(
-        FiltroInstitucion(null, R.string.home_filter_all),
-        FiltroInstitucion(INSTITUCION_REGISTRO_CIVIL, R.string.home_filter_registro_civil),
-        FiltroInstitucion(INSTITUCION_SRI, R.string.home_filter_sri),
-        FiltroInstitucion(INSTITUCION_ANT, R.string.home_filter_ant)
-    )
+    val filtros = listOf<String?>(null) + instituciones
     LazyRow(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        items(filtros, key = { it.institucion ?: "todos" }) { filtro ->
-            val seleccionado = institucionSeleccionada == filtro.institucion
+        items(filtros, key = { it ?: "todos" }) { institucion ->
+            val seleccionado = institucionSeleccionada == institucion
             FilterChip(
                 selected = seleccionado,
-                onClick = { onSeleccionar(filtro.institucion) },
+                onClick = { onSeleccionar(institucion) },
                 label = {
                     Text(
-                        text = stringResource(filtro.etiquetaRes),
+                        text = institucion ?: stringResource(R.string.home_filter_all),
                         maxLines = 1
                     )
                 },
@@ -270,6 +280,57 @@ private fun FiltrosInstitucion(
                     selectedLabelColor = MaterialTheme.colorScheme.onSecondary
                 )
             )
+        }
+    }
+}
+
+@Composable
+private fun EstadoCatalogoPrincipal(
+    actualizando: Boolean,
+    usandoCatalogoOficial: Boolean,
+    cantidadTramites: Int,
+    onActualizar: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        if (actualizando) {
+            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+        } else {
+            Icon(
+                imageVector = if (usandoCatalogoOficial) Icons.Default.CloudDone else Icons.Default.CloudOff,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = when {
+                    actualizando -> stringResource(R.string.home_catalog_updating)
+                    usandoCatalogoOficial -> stringResource(R.string.home_catalog_official)
+                    else -> stringResource(R.string.home_catalog_offline)
+                },
+                style = MaterialTheme.typography.labelLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = stringResource(R.string.home_catalog_count, cantidadTramites),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (!actualizando) {
+            OutlinedIconButton(onClick = onActualizar) {
+                Icon(
+                    imageVector = Icons.Default.Refresh,
+                    contentDescription = stringResource(R.string.home_cd_refresh_catalog)
+                )
+            }
         }
     }
 }
@@ -413,9 +474,12 @@ private fun PantallaPrincipalPreview(mostrarAvisoInicial: Boolean = false) {
         tramites = CatalogoTramites.tramites,
         favoritos = setOf("licencia"),
         mostrarAvisoInicial = mostrarAvisoInicial,
+        actualizandoCatalogo = false,
+        usandoCatalogoOficial = false,
         onAbrirTramite = {},
         onAlternarFavorito = {},
         onAbrirPerfil = {},
-        onDescartarAviso = {}
+        onDescartarAviso = {},
+        onActualizarCatalogo = {}
     )
 }
