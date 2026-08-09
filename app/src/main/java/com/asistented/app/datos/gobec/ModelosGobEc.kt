@@ -16,7 +16,10 @@ internal data class TramiteGobEcDto(
     val tramiteEnLineaUrl: String,
     val tramiteEnLineaCompleto: String,
     val costo: String,
-    val modificado: String
+    val costoDetalle: String,
+    val modificado: String,
+    val institucionNombre: String = "",
+    val institucionSiglas: String = ""
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("tramite_id", tramiteId)
@@ -32,7 +35,10 @@ internal data class TramiteGobEcDto(
         .put("tramite_enlinea_url", tramiteEnLineaUrl)
         .put("tramite_enlinea_completo", tramiteEnLineaCompleto)
         .put("costo", costo)
+        .put("costo_detalle", costoDetalle)
         .put("modificado", modificado)
+        .put("institucion_nombre", institucionNombre)
+        .put("institucion_siglas", institucionSiglas)
 
     companion object {
         fun fromJson(json: JSONObject): TramiteGobEcDto = TramiteGobEcDto(
@@ -49,7 +55,10 @@ internal data class TramiteGobEcDto(
             tramiteEnLineaUrl = normalizarUrlGobEc(json.optString("tramite_enlinea_url")),
             tramiteEnLineaCompleto = json.optString("tramite_enlinea_completo"),
             costo = json.optString("costo"),
-            modificado = json.optString("modificado")
+            costoDetalle = json.optString("costo_detalle"),
+            modificado = json.optString("modificado"),
+            institucionNombre = json.optString("institucion_nombre"),
+            institucionSiglas = json.optString("institucion_siglas")
         )
     }
 }

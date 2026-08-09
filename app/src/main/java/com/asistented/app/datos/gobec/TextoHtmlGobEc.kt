@@ -1,6 +1,11 @@
 package com.asistented.app.datos.gobec
 
 internal object TextoHtmlGobEc {
+    data class PasoProcedimiento(
+        val descripcion: String,
+        val seccion: String?
+    )
+
     fun limpiar(valor: String): String {
         if (valor.isBlank()) return ""
         // La API mezcla HTML real con entidades escapadas; por eso se decodifica antes y despues de quitar etiquetas.
@@ -27,6 +32,52 @@ internal object TextoHtmlGobEc {
         return texto.take(corte).trimEnd('.', ',', ';') + "."
     }
 
+    fun extraerPasosProcedimiento(valor: String): List<PasoProcedimiento> {
+        val lineas = limpiar(valor).lines().map(String::trim).filter(String::isNotBlank)
+        if (lineas.isEmpty()) return emptyList()
+
+        var seccionActual: String? = null
+        val pasos = buildList {
+            lineas.forEach { linea ->
+                val numerado = PATRON_PASO_NUMERADO.matchEntire(linea)
+                when {
+                    numerado != null -> add(
+                        PasoProcedimiento(
+                            descripcion = numerado.groupValues[2].trim(),
+                            seccion = seccionActual
+                        )
+                    )
+                    linea.startsWith("- ") -> add(
+                        PasoProcedimiento(
+                            descripcion = linea.removePrefix("- ").trim(),
+                            seccion = seccionActual
+                        )
+                    )
+                    linea.endsWith(":") -> seccionActual = linea.removeSuffix(":").trim()
+                }
+            }
+        }
+
+        if (pasos.isEmpty()) {
+            return lineas
+                .filterNot { it.endsWith(":") }
+                .map { PasoProcedimiento(descripcion = it, seccion = seccionActual) }
+        }
+
+        // Algunos tramites mezclan instrucciones presenciales y virtuales; la app conserva solo el canal en linea.
+        val haySeccionPresencial = pasos.any { it.seccion.normalizada().contains("presencial") }
+        val pasosEnLinea = pasos.filter { paso ->
+            val seccion = paso.seccion.normalizada()
+            "virtual" in seccion || "en linea" in seccion || seccion == "linea"
+        }
+        return if (haySeccionPresencial && pasosEnLinea.isNotEmpty()) pasosEnLinea else pasos
+    }
+
+    fun extraerFecha(valor: String): String? {
+        val fechaEnAtributo = PATRON_FECHA_DATETIME.find(valor)?.groupValues?.getOrNull(1)
+        return fechaEnAtributo?.take(10) ?: limpiar(valor).takeIf { it.isNotBlank() }?.take(10)
+    }
+
     private fun String.decodificarEntidadesHtml(): String {
         var salida = this
         entidades.forEach { (entidad, reemplazo) -> salida = salida.replace(entidad, reemplazo) }
@@ -34,6 +85,17 @@ internal object TextoHtmlGobEc {
             match.groupValues[1].toIntOrNull()?.toChar()?.toString() ?: match.value
         }
     }
+
+    private fun String?.normalizada(): String = orEmpty()
+        .lowercase()
+        .replace('á', 'a')
+        .replace('é', 'e')
+        .replace('í', 'i')
+        .replace('ó', 'o')
+        .replace('ú', 'u')
+
+    private val PATRON_PASO_NUMERADO = Regex("^(\\d+)\\s*[.)-]?\\s*(.+)$")
+    private val PATRON_FECHA_DATETIME = Regex("(?i)datetime=\\\"([^\\\"]+)\\\"")
 
     private val entidades = mapOf(
         "&nbsp;" to " ",

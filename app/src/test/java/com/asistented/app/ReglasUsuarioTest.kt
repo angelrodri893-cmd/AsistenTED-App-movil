@@ -171,6 +171,32 @@ class ReglasUsuarioTest {
     }
 
     @Test
+    fun procedimientoGobEc_generaLaCantidadRealDePasosNumerados() {
+        val procedimiento = """
+            <p><strong>Procedimiento en línea:</strong></p>
+            <p>1. Ingresar al portal<br>2. Iniciar sesión<br>3. Descargar el certificado</p>
+        """.trimIndent()
+
+        val pasos = TextoHtmlGobEc.extraerPasosProcedimiento(procedimiento)
+
+        assertEquals(3, pasos.size)
+        assertEquals("Ingresar al portal", pasos.first().descripcion)
+        assertTrue(pasos.all { it.seccion == "Procedimiento en línea" })
+    }
+
+    @Test
+    fun procedimientoGobEc_excluyePasosPresencialesCuandoExisteCanalVirtual() {
+        val procedimiento = """
+            <p><strong>Presencial:</strong></p><p>1. Acudir a una oficina</p>
+            <p><strong>Línea:</strong></p><p>1. Abrir el portal<br>2. Descargar el resultado</p>
+        """.trimIndent()
+
+        val pasos = TextoHtmlGobEc.extraerPasosProcedimiento(procedimiento)
+
+        assertEquals(listOf("Abrir el portal", "Descargar el resultado"), pasos.map { it.descripcion })
+    }
+
+    @Test
     fun selectorGobEc_descartaTramitesQueNoSonCompletamenteEnLinea() {
         val valido = tramiteGobEc("11745", "Emisión de Certificados y Actas Registrales")
         val incompleto = tramiteGobEc(
@@ -211,15 +237,21 @@ class ReglasUsuarioTest {
             id = "1002",
             nombre = "Certificado de Registro Único de Contribuyente (RUC)",
             institucion = "8",
+            institucionNombre = "Servicio de Rentas Internas",
             imagen = "https://www.gob.ec/sites/default/files/ruc.jpg",
-            requisitos = "<p>Cédula o RUC</p>"
+            requisitos = "<p>Cédula o RUC</p>",
+            procedimiento = "<p>1. Abrir SRI en línea<br>2. Descargar el certificado</p>",
+            costo = "No",
+            modificado = "<time datetime=\"2026-08-08T10:00:00-05:00\">fecha</time>"
         ).aTramite()
 
         assertEquals("gobec_1002", remoto.id)
-        assertEquals("SRI", remoto.institution)
+        assertEquals("Servicio de Rentas Internas", remoto.institution)
         assertEquals("https://www.gob.ec/sites/default/files/ruc.jpg", remoto.imagenUrl)
         assertTrue(remoto.requisitosOficiales.orEmpty().contains("Cédula o RUC"))
-        assertTrue(remoto.steps.isNotEmpty())
+        assertEquals(2, remoto.steps.size)
+        assertEquals("No", remoto.costoOficial)
+        assertEquals("2026-08-08", remoto.actualizadoEn)
     }
 
     @Test
@@ -243,6 +275,25 @@ class ReglasUsuarioTest {
 
         assertEquals(listOf("gobec_1002"), combinados.map { it.id })
     }
+
+    @Test
+    fun refrescoIncompleto_conservaElUltimoCacheOficial() {
+        val cache = (1..8).map { indice ->
+            tramiteGobEc(
+                id = "cache_$indice",
+                nombre = "Trámite oficial $indice"
+            ).aTramite()
+        }
+        val remotoIncompleto = cache.take(3)
+
+        val resultado = RepositorioCatalogoTramites.resolverCatalogoTrasRefresco(
+            locales = CatalogoTramites.tramites,
+            cache = cache,
+            remotos = remotoIncompleto
+        )
+
+        assertEquals(cache.map { it.id }, resultado.map { it.id })
+    }
 }
 
 private fun tramiteGobEc(
@@ -251,7 +302,12 @@ private fun tramiteGobEc(
     institucion: String = "23",
     completo: String = "Sí",
     imagen: String = "https://www.gob.ec/sites/default/files/imagen.jpg",
-    requisitos: String = "<p>Cédula vigente</p>"
+    requisitos: String = "<p>Cédula vigente</p>",
+    procedimiento: String = "<ol><li>Ingresar al portal.</li></ol>",
+    costo: String = "No",
+    costoDetalle: String = "",
+    modificado: String = "2026-08-08",
+    institucionNombre: String = ""
 ) = TramiteGobEcDto(
     tramiteId = id,
     nombre = nombre,
@@ -262,11 +318,13 @@ private fun tramiteGobEc(
     descripcion = "<p>Descripción oficial del trámite.</p>",
     requisitosObligatorios = requisitos,
     requisitosEspeciales = "",
-    procedimiento = "<ol><li>Ingresar al portal.</li></ol>",
+    procedimiento = procedimiento,
     tramiteEnLineaUrl = "https://www.gob.ec/tramites/$id/webform",
     tramiteEnLineaCompleto = completo,
-    costo = "No tiene costo",
-    modificado = "2026-08-08"
+    costo = costo,
+    costoDetalle = costoDetalle,
+    modificado = modificado,
+    institucionNombre = institucionNombre
 )
 
 

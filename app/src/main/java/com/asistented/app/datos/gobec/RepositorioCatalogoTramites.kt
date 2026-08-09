@@ -4,9 +4,6 @@ import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.PreferenciasLocales
 import com.asistented.app.datos.modelos.PasoGuia
 import com.asistented.app.datos.modelos.Tramite
-import kotlinx.coroutines.async
-import kotlinx.coroutines.awaitAll
-import kotlinx.coroutines.coroutineScope
 import org.json.JSONArray
 
 internal class RepositorioCatalogoTramites(
@@ -24,31 +21,62 @@ internal class RepositorioCatalogoTramites(
     }
 
     suspend fun refrescarCatalogo(): List<Tramite> {
+        val cacheAnterior = cargarTramitesCache()
         val candidatos = cargarCandidatosApi()
         val seleccionados = SelectorTramitesGobEc.seleccionar(candidatos)
-        if (seleccionados.isNotEmpty()) {
-            guardarCache(seleccionados)
+        if (seleccionados.size < CANTIDAD_TRAMITES_OFICIALES) {
+            return resolverCatalogoTrasRefresco(
+                locales = CatalogoTramites.tramites,
+                cache = cacheAnterior,
+                remotos = emptyList()
+            )
         }
-        return combinarCatalogos(CatalogoTramites.tramites, seleccionados.map { it.aTramite() })
+
+        val enriquecidos = enriquecerConInstituciones(seleccionados)
+        guardarCache(enriquecidos)
+        return resolverCatalogoTrasRefresco(
+            locales = CatalogoTramites.tramites,
+            cache = cacheAnterior,
+            remotos = enriquecidos.map { it.aTramite() }
+        )
     }
 
-    private suspend fun cargarCandidatosApi(): List<TramiteGobEcDto> = coroutineScope {
+    private suspend fun enriquecerConInstituciones(
+        tramites: List<TramiteGobEcDto>
+    ): List<TramiteGobEcDto> {
+        val instituciones = tramites
+            .map(TramiteGobEcDto::institucionId)
+            .filter(String::isNotBlank)
+            .distinct()
+            .map { institucionId -> institucionId to cliente.obtenerInstitucion(institucionId) }
+            .toMap()
+
+        return tramites.map { tramite ->
+            val institucion = instituciones[tramite.institucionId]
+            tramite.copy(
+                institucionNombre = institucion?.nombre.orEmpty(),
+                institucionSiglas = institucion?.siglas.orEmpty()
+            )
+        }
+    }
+
+    private suspend fun cargarCandidatosApi(): List<TramiteGobEcDto> {
         val prioritarios = SelectorTramitesGobEc.idsPrioritarios
-            .map { id -> async { cliente.obtenerTramite(id) } }
-            .awaitAll()
-            .filterNotNull()
+            .mapNotNull { id -> cliente.obtenerTramite(id) }
 
         if (SelectorTramitesGobEc.seleccionar(prioritarios).size >= 8) {
-            return@coroutineScope prioritarios
+            return prioritarios
         }
 
-        val fallback = SelectorTramitesGobEc.institucionesFallback.flatMap { institucionId ->
-            listOf(0, 1).map { pagina ->
-                async { cliente.obtenerTramitesInstitucion(institucionId, pagina) }
+        val fallback = buildList {
+            SelectorTramitesGobEc.institucionesFallback.forEach { institucionId ->
+                listOf(0, 1).forEach { pagina ->
+                    addAll(cliente.obtenerTramitesInstitucion(institucionId, pagina))
+                }
             }
-        }.awaitAll().flatten()
+        }
 
-        prioritarios + fallback
+        return prioritarios + fallback
     }
 
     private fun cargarTramitesCache(): List<Tramite> {
@@ -70,10 +98,21 @@ internal class RepositorioCatalogoTramites(
     }
 
     internal companion object {
+        private const val CANTIDAD_TRAMITES_OFICIALES = 8
         private const val DURACION_CACHE_MILLIS = 24 * 60 * 60 * 1000L
 
         fun combinarCatalogos(locales: List<Tramite>, remotos: List<Tramite>): List<Tramite> =
             remotos.distinctBy { it.id }.takeIf { it.isNotEmpty() } ?: locales.distinctBy { it.id }
+
+        fun resolverCatalogoTrasRefresco(
+            locales: List<Tramite>,
+            cache: List<Tramite>,
+            remotos: List<Tramite>
+        ): List<Tramite> = when {
+            remotos.size >= CANTIDAD_TRAMITES_OFICIALES -> remotos.distinctBy { it.id }
+            cache.isNotEmpty() -> cache.distinctBy { it.id }
+            else -> locales.distinctBy { it.id }
+        }
     }
 }
 
@@ -85,89 +124,54 @@ internal fun TramiteGobEcDto.aTramite(): Tramite {
 
     val resumen = TextoHtmlGobEc.resumen(descripcion)
         .ifBlank { "Información oficial publicada en Gob.Ec para iniciar este trámite en línea." }
+    val procedimientoLimpio = TextoHtmlGobEc.limpiar(procedimiento)
+    val costoLimpio = TextoHtmlGobEc.limpiar(costoDetalle).ifBlank { TextoHtmlGobEc.limpiar(costo) }
+    val tituloOficial = TextoHtmlGobEc.limpiar(nombre).replace("\n", " ")
+    val institucionOficial = TextoHtmlGobEc.limpiar(institucionNombre).replace("\n", " ")
 
     return Tramite(
         id = "gobec_$tramiteId",
-        title = nombre.trim(),
-        institution = nombreInstitucion(institucionId),
+        title = tituloOficial,
+        institution = institucionOficial.ifBlank { nombreInstitucion(institucionId) },
         summary = resumen,
         category = categoriaInstitucion(institucionId, nombre),
         urlOficial = tramiteEnLineaUrl.ifBlank { url },
-        steps = pasosDidacticosGobEc(this, requisitos),
+        steps = pasosOficialesGobEc(this),
         apiId = tramiteId,
         imagenUrl = imagenUrl.ifBlank { null },
         requisitosOficiales = requisitos.ifBlank { null },
+        procedimientoOficial = procedimientoLimpio.ifBlank { null },
+        costoOficial = costoLimpio.ifBlank { null },
         urlTramiteEnLinea = tramiteEnLineaUrl.ifBlank { null },
-        actualizadoEn = modificado.ifBlank { null },
+        actualizadoEn = TextoHtmlGobEc.extraerFecha(modificado),
         fuenteOficial = "Gob.Ec - Creative Commons Attribution"
     )
 }
 
-private fun pasosDidacticosGobEc(tramite: TramiteGobEcDto, requisitos: String): List<PasoGuia> {
-    val nombre = tramite.nombre.lowercase()
-    val documentos = requisitos.lineSequence().firstOrNull { it.isNotBlank() } ?: "documentos o datos indicados por Gob.Ec"
-    return listOf(
-        PasoGuia(
-            id = "revisar",
-            title = "1. Revisar la información oficial",
-            description = "Lee el resumen del trámite y confirma que corresponde a lo que necesitas hacer.",
-            textoAyuda = "Si el nombre del trámite no coincide con tu necesidad, vuelve al inicio y revisa otra opción.",
-            elementosRevision = listOf(
-                "Leí el nombre completo del trámite.",
-                "Confirmé la institución responsable.",
-                "Revisé si el trámite se realiza en línea."
-            ),
-            espacioImagen = "Espacio para captura del trámite oficial: $nombre."
-        ),
-        PasoGuia(
-            id = "requisitos",
-            title = "2. Preparar requisitos",
-            description = "Ten a la mano los requisitos base antes de abrir el portal oficial.",
-            textoAyuda = "Requisito principal a revisar: $documentos",
-            elementosRevision = listOf(
-                "Revisé los requisitos oficiales.",
-                "Tengo mis documentos o datos personales a mano.",
-                "Anoté cualquier clave o usuario que pueda necesitar."
-            ),
-            espacioImagen = "Espacio para imagen de documentos o requisitos."
-        ),
-        PasoGuia(
-            id = "portal",
-            title = "3. Abrir el trámite en línea",
-            description = "Presiona el botón del portal oficial y verifica que la dirección pertenezca a la institución.",
-            textoAyuda = "Evita abrir enlaces enviados por desconocidos. Usa el botón oficial de la app.",
-            elementosRevision = listOf(
-                "Abrí el enlace desde la app.",
-                "Verifiqué que el sitio sea oficial.",
-                "No compartí mi contraseña con otra persona."
-            ),
-            espacioImagen = "Espacio para captura de la página oficial."
-        ),
-        PasoGuia(
-            id = "formulario",
-            title = "4. Completar datos",
-            description = "Llena los campos con calma. Revisa nombres, números, fechas y correos antes de avanzar.",
-            textoAyuda = "Un dato mal escrito puede hacer que el trámite se rechace o se demore.",
-            elementosRevision = listOf(
-                "Escribí mis datos sin errores.",
-                "Revisé los campos obligatorios.",
-                "Guardé cualquier código que apareció en pantalla."
-            ),
-            espacioImagen = "Espacio para captura del formulario."
-        ),
-        PasoGuia(
-            id = "guardar",
-            title = "5. Guardar comprobante",
-            description = "Al finalizar, descarga o toma captura del comprobante, número de solicitud o resultado.",
-            textoAyuda = "No cierres la página hasta guardar una constancia del trámite.",
-            elementosRevision = listOf(
-                "Revisé el resumen final.",
-                "Guardé el comprobante o número de solicitud.",
-                "Anoté si debo revisar una respuesta después."
-            ),
-            espacioImagen = "Espacio para imagen del comprobante final."
-        )
-    )
+private fun pasosOficialesGobEc(tramite: TramiteGobEcDto): List<PasoGuia> =
+    TextoHtmlGobEc.extraerPasosProcedimiento(tramite.procedimiento)
+        .mapIndexed { indice, paso ->
+            PasoGuia(
+                id = "api_paso_${indice + 1}",
+                title = tituloBrevePaso(paso.descripcion),
+                description = paso.descripcion,
+                textoAyuda = paso.seccion
+                    ?.takeIf { it.isNotBlank() }
+                    ?.let { "Apartado oficial: $it." }
+                    ?: "Realiza esta instrucción con calma en el portal oficial.",
+                elementosRevision = listOf("Completé este paso."),
+                espacioImagen = ""
+            )
+        }
+
+private fun tituloBrevePaso(descripcion: String): String {
+    val primeraIdea = descripcion
+        .substringBefore('.')
+        .substringBefore(';')
+        .trim()
+    if (primeraIdea.length <= 64) return primeraIdea
+    val corte = primeraIdea.lastIndexOf(' ', startIndex = 64).takeIf { it > 24 } ?: 64
+    return primeraIdea.take(corte).trimEnd() + "..."
 }
 
 private fun nombreInstitucion(id: String): String = when (id) {
