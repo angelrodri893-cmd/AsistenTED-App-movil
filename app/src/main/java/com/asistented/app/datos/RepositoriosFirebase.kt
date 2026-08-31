@@ -52,15 +52,19 @@ class RepositorioAutenticacion(
                         .onSuccess { perfil ->
                             onResult(Result.success(perfil.copy(username = perfil.username.ifBlank { normalized })))
                         }
-                        .onFailure {
-                            val perfilBasico = PerfilUsuario(
-                                uid = uid,
-                                username = normalized,
-                                nombre = normalized,
-                                apellido = ""
-                            )
-                            repositorioUsuario.guardarPerfil(perfilBasico) {
-                                onResult(Result.success(perfilBasico))
+                        .onFailure { error ->
+                            if (error is IllegalStateException && error.message == "No se encontró el perfil.") {
+                                val perfilBasico = PerfilUsuario(
+                                    uid = uid,
+                                    username = normalized,
+                                    nombre = normalized,
+                                    apellido = ""
+                                )
+                                repositorioUsuario.guardarPerfil(perfilBasico) { saveResult ->
+                                    onResult(saveResult.map { perfilBasico })
+                                }
+                            } else {
+                                onResult(Result.failure(error))
                             }
                         }
                 }
@@ -110,16 +114,6 @@ class RepositorioAutenticacion(
 class RepositorioUsuario(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
-    fun existeUsername(username: String, onResult: (Result<Boolean>) -> Unit) {
-        val normalized = ReglasAutenticacion.normalizarUsuario(username)
-        db.collection("users")
-            .whereEqualTo("username", normalized)
-            .limit(1)
-            .get()
-            .addOnSuccessListener { snapshot -> onResult(Result.success(!snapshot.isEmpty)) }
-            .addOnFailureListener { onResult(Result.failure(it)) }
-    }
-
     fun guardarPerfil(perfil: PerfilUsuario, onResult: (Result<Unit>) -> Unit = {}) {
         val data = mapOf(
             "uid" to perfil.uid,

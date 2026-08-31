@@ -110,17 +110,6 @@ class ControladorAsistenTed(context: Context) {
         mensaje = "Entraste como anónimo. Puedes ver guías, pero algunas funciones se guardan solo con cuenta."
     }
 
-    fun verificarUsuarioDisponible(username: String, onResult: (Result<Boolean>) -> Unit) {
-        repositorioUsuario.existeUsername(username) { result ->
-            result
-                .onSuccess { existe -> onResult(Result.success(!existe)) }
-                .onFailure {
-                    mensaje = it.comoMensajeUsuario("No se pudo verificar el usuario.")
-                    onResult(Result.failure(it))
-                }
-        }
-    }
-
     fun registrar(
         username: String,
         nombre: String,

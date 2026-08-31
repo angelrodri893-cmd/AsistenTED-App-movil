@@ -448,8 +448,6 @@ private fun PantallaAutenticacionDisenada(controlador: ControladorAsistenTed, mo
     var mostrarAvisoAnonimo by remember { mutableStateOf(false) }
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmationVisible by remember { mutableStateOf(false) }
-    var verificandoUsuario by remember { mutableStateOf(false) }
-
     var usernameError by remember { mutableStateOf<String?>(null) }
     var nombreError by remember { mutableStateOf<String?>(null) }
     var apellidoError by remember { mutableStateOf<String?>(null) }
@@ -541,21 +539,9 @@ private fun PantallaAutenticacionDisenada(controlador: ControladorAsistenTed, mo
             }
         }
 
-        verificandoUsuario = true
-        controlador.verificarUsuarioDisponible(username) { resultadoDisponibilidad ->
-            verificandoUsuario = false
-            resultadoDisponibilidad
-                .onSuccess { disponible ->
-                    if (disponible) {
-                        registrarConFirebaseAuth()
-                    } else {
-                        usernameError = errorUsuarioRepetido
-                    }
-                }
-                .onFailure {
-                    registrarConFirebaseAuth()
-                }
-            }
+        // Firebase Auth mantiene la unicidad real del usuario convertido a correo interno.
+        // La consulta previa a Firestore no es necesaria y no debe exponer documentos de usuarios.
+        registrarConFirebaseAuth()
     }
 
     if (mostrarBienvenida) {
@@ -563,7 +549,7 @@ private fun PantallaAutenticacionDisenada(controlador: ControladorAsistenTed, mo
         return
     }
 
-    val cargando = controlador.cargando || verificandoUsuario
+    val cargando = controlador.cargando
     Box(modifier = modifier.fillMaxSize()) {
         PantallaAutenticacionContenido(
             modo = modo,
