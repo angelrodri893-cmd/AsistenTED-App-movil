@@ -91,7 +91,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.asistented.app.R
-import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.modelos.ComentarioForo
 import com.asistented.app.datos.modelos.PasoGuia
 import com.asistented.app.datos.modelos.Tramite
@@ -1094,7 +1093,7 @@ private fun PreviewDetalleAmplio() {
 @Composable
 private fun DetallePreview(mostrarAviso: Boolean = false) {
     PantallaDetalleTramiteRedisenada(
-        tramite = CatalogoTramites.tramites.first(),
+        tramite = tramitesDeVistaPrevia.first(),
         pasosCompletados = setOf("preparar"),
         comentarios = comentariosPreview,
         usuarioActualId = "usuario-preview",

@@ -52,15 +52,19 @@ class RepositorioAutenticacion(
                         .onSuccess { perfil ->
                             onResult(Result.success(perfil.copy(username = perfil.username.ifBlank { normalized })))
                         }
-                        .onFailure {
-                            val perfilBasico = PerfilUsuario(
-                                uid = uid,
-                                username = normalized,
-                                nombre = normalized,
-                                apellido = ""
-                            )
-                            repositorioUsuario.guardarPerfil(perfilBasico) {
-                                onResult(Result.success(perfilBasico))
+                        .onFailure { error ->
+                            if (error is IllegalStateException && error.message == "No se encontró el perfil.") {
+                                val perfilBasico = PerfilUsuario(
+                                    uid = uid,
+                                    username = normalized,
+                                    nombre = normalized,
+                                    apellido = ""
+                                )
+                                repositorioUsuario.guardarPerfil(perfilBasico) { saveResult ->
+                                    onResult(saveResult.map { perfilBasico })
+                                }
+                            } else {
+                                onResult(Result.failure(error))
                             }
                         }
                 }
@@ -110,16 +114,6 @@ class RepositorioAutenticacion(
 class RepositorioUsuario(
     private val db: FirebaseFirestore = FirebaseFirestore.getInstance()
 ) {
-    fun existeUsername(username: String, onResult: (Result<Boolean>) -> Unit) {
-        val normalized = ReglasAutenticacion.normalizarUsuario(username)
-        db.collection("users")
-            .whereEqualTo("username", normalized)
-            .limit(1)
-            .get()
-            .addOnSuccessListener { snapshot -> onResult(Result.success(!snapshot.isEmpty)) }
-            .addOnFailureListener { onResult(Result.failure(it)) }
-    }
-
     fun guardarPerfil(perfil: PerfilUsuario, onResult: (Result<Unit>) -> Unit = {}) {
         val data = mapOf(
             "uid" to perfil.uid,
@@ -165,14 +159,19 @@ class RepositorioUsuario(
             .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
-    fun guardarFavorito(uid: String, tramiteId: String, enabled: Boolean) {
-        if (uid == "guest") return
+    fun guardarFavorito(uid: String, tramiteId: String, enabled: Boolean, onResult: (Result<Unit>) -> Unit = {}) {
+        if (uid == "guest") {
+            onResult(Result.success(Unit))
+            return
+        }
         val operation = if (enabled) {
             FieldValue.arrayUnion(tramiteId)
         } else {
             FieldValue.arrayRemove(tramiteId)
         }
         db.collection("users").document(uid).set(mapOf("favoritos" to operation), SetOptions.merge())
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
     fun cargarFavoritos(uid: String, onResult: (List<String>) -> Unit) {
@@ -189,8 +188,11 @@ class RepositorioUsuario(
             .addOnFailureListener { onResult(emptyList()) }
     }
 
-    fun guardarProgreso(uid: String, tramiteId: String, pasosCompletadosIds: Set<String>) {
-        if (uid == "guest") return
+    fun guardarProgreso(uid: String, tramiteId: String, pasosCompletadosIds: Set<String>, onResult: (Result<Unit>) -> Unit = {}) {
+        if (uid == "guest") {
+            onResult(Result.success(Unit))
+            return
+        }
         db.collection("users").document(uid)
             .collection("progress")
             .document(tramiteId)
@@ -201,6 +203,8 @@ class RepositorioUsuario(
                 ),
                 SetOptions.merge()
             )
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
     fun cargarProgreso(uid: String, onResult: (Map<String, Set<String>>) -> Unit) {
@@ -221,12 +225,17 @@ class RepositorioUsuario(
             .addOnFailureListener { onResult(emptyMap()) }
     }
 
-    fun agregarHistorial(uid: String, item: ElementoHistorial) {
-        if (uid == "guest") return
+    fun agregarHistorial(uid: String, item: ElementoHistorial, onResult: (Result<Unit>) -> Unit = {}) {
+        if (uid == "guest") {
+            onResult(Result.success(Unit))
+            return
+        }
         db.collection("users").document(uid)
             .collection("historial")
             .document("${item.tramiteId}_${item.consultadoEnMillis}")
             .set(item)
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
     fun cargarHistorial(uid: String, onResult: (List<ElementoHistorial>) -> Unit) {
@@ -252,12 +261,17 @@ class RepositorioUsuario(
             .addOnFailureListener { onResult(emptyList()) }
     }
 
-    fun guardarRecordatorio(uid: String, reminder: Recordatorio) {
-        if (uid == "guest") return
+    fun guardarRecordatorio(uid: String, reminder: Recordatorio, onResult: (Result<Unit>) -> Unit = {}) {
+        if (uid == "guest") {
+            onResult(Result.success(Unit))
+            return
+        }
         db.collection("users").document(uid)
             .collection("recordatorios")
             .document(reminder.id)
             .set(reminder, SetOptions.merge())
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
     }
 
     fun cargarRecordatorios(uid: String, onResult: (List<Recordatorio>) -> Unit) {
@@ -284,12 +298,17 @@ class RepositorioUsuario(
             .addOnFailureListener { onResult(emptyList()) }
     }
 
-    fun borrarRecordatorio(uid: String, reminderId: String) {
-        if (uid == "guest") return
+    fun borrarRecordatorio(uid: String, reminderId: String, onResult: (Result<Unit>) -> Unit = {}) {
+        if (uid == "guest") {
+            onResult(Result.success(Unit))
+            return
+        }
         db.collection("users").document(uid)
             .collection("recordatorios")
             .document(reminderId)
             .delete()
+            .addOnSuccessListener { onResult(Result.success(Unit)) }
+            .addOnFailureListener { onResult(Result.failure(it)) }
     }
 }
 

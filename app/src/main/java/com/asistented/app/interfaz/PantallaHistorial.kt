@@ -56,7 +56,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.asistented.app.R
-import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.interfaz.tema.TemaAsistenTED
 
@@ -244,7 +243,7 @@ private fun iconoTramiteHistorial(id: String): ImageVector = when (id) {
 @Composable
 private fun PreviewHistorialCompacto() {
     TemaAsistenTED(darkTheme = false) {
-        HistorialPreview(ids = CatalogoTramites.tramites.take(3).map { it.id })
+        HistorialPreview(ids = tramitesDeVistaPrevia.take(3).map { it.id })
     }
 }
 
@@ -252,7 +251,7 @@ private fun PreviewHistorialCompacto() {
 @Composable
 private fun PreviewHistorialAmplio() {
     TemaAsistenTED(darkTheme = false) {
-        HistorialPreview(ids = CatalogoTramites.tramites.map { it.id })
+        HistorialPreview(ids = tramitesDeVistaPrevia.map { it.id })
     }
 }
 
@@ -265,9 +264,9 @@ private fun PreviewHistorialVacio() {
 @Composable
 private fun HistorialPreview(ids: List<String>) {
     PantallaHistorialRedisenada(
-        tramites = CatalogoTramites.tramites,
+        tramites = tramitesDeVistaPrevia,
         idsHistorial = ids,
-        favoritos = setOf("cedula"),
+        favoritos = setOf("gobec_1002"),
         avatarId = "avatar_1",
         onRegresar = {},
         onAbrirPerfil = {},

@@ -6,7 +6,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.runtime.remember
 import com.asistented.app.interfaz.AplicacionAsistenTed
-import com.asistented.app.interfaz.ControladorAsistenTed
+import com.asistented.app.presentacion.ControladorAsistenTed
 import com.asistented.app.interfaz.tema.TemaAsistenTED
 
 class MainActivity : ComponentActivity() {

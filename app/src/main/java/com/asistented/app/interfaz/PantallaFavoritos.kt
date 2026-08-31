@@ -56,7 +56,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.asistented.app.R
-import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.interfaz.tema.TemaAsistenTED
 
@@ -263,7 +262,7 @@ private fun PreviewPantallaFavoritosAmplia() {
 
 @Composable
 private fun PantallaFavoritosPreview(mostrarAvisoInicial: Boolean = false) {
-    val tramites = CatalogoTramites.tramites
+    val tramites = tramitesDeVistaPrevia
     PantallaFavoritos(
         tramites = tramites,
         favoritos = tramites.map { it.id }.toSet(),
