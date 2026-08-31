@@ -9,7 +9,6 @@ import android.os.Build
 import android.speech.tts.TextToSpeech
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -31,64 +30,41 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Bookmark
-import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.OpenInBrowser
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -98,7 +74,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
@@ -112,9 +87,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.navigation.NavHostController
@@ -125,58 +98,13 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.asistented.app.R
-import com.asistented.app.datos.RepositorioAutenticacion
-import com.asistented.app.datos.RepositorioForo
-import com.asistented.app.datos.PreferenciasLocales
-import com.asistented.app.datos.CatalogoTramites
-import com.asistented.app.datos.RepositorioUsuario
-import com.asistented.app.datos.modelos.ConfiguracionAccesibilidad
-import com.asistented.app.datos.modelos.ComentarioForo
-import com.asistented.app.datos.modelos.ElementoHistorial
-import com.asistented.app.datos.modelos.Tramite
-import com.asistented.app.datos.modelos.Recordatorio
-import com.asistented.app.datos.modelos.PerfilUsuario
-import com.asistented.app.datos.gobec.RepositorioCatalogoTramites
-import com.asistented.app.dominio.ReglasAutenticacion
-import com.asistented.app.dominio.ReglasProgreso
-import com.asistented.app.dominio.ReglasContenidoUsuario
 import com.asistented.app.interfaz.tema.TemaAsistenTED
-import com.asistented.app.notificaciones.ProgramadorRecordatorios
+import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.presentacion.ControladorAsistenTed
 import com.asistented.app.presentacion.esUsuarioDuplicadoEnAuth
-import com.google.firebase.auth.FirebaseAuthException
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import java.util.Locale
-import java.util.UUID
-
-private fun Throwable.comoMensajeUsuario(defaultMessage: String): String {
-    val raw = (localizedMessage ?: message).orEmpty()
-    return when {
-        raw.contains("PERMISSION_DENIED", ignoreCase = true) ||
-            raw.contains("permission_denied", ignoreCase = true) ||
-            raw.contains("Missing or insufficient permissions", ignoreCase = true) ->
-            "Faltan permisos en Firestore. Publica las reglas de seguridad del proyecto y vuelve a intentar."
-        else -> raw.ifBlank { defaultMessage }
-    }
-}
-
-private fun Throwable.esUsuarioDuplicadoEnAuth(): Boolean {
-    val raw = (localizedMessage ?: message).orEmpty()
-    return this is FirebaseAuthUserCollisionException ||
-        (this as? FirebaseAuthException)?.errorCode == "ERROR_EMAIL_ALREADY_IN_USE" ||
-        raw.contains("email address is already in use", ignoreCase = true) ||
-        raw.contains("already in use", ignoreCase = true)
-}
 
 @Composable
 private fun Modifier.ocultarTecladoAlTocarFuera(): Modifier {
@@ -1222,784 +1150,6 @@ private fun PreviewPantallaBienvenida() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun PantallaDetalleTramite(
-    controlador: ControladorAsistenTed,
-    procedure: Tramite,
-    navController: NavHostController
-) {
-    val context = LocalContext.current
-    val speaker = recordarLectorGuia()
-    var commentText by remember { mutableStateOf("") }
-    val completed = controlador.pasosCompletados[procedure.id].orEmpty()
-    val fullText = buildString {
-        append(procedure.title).append(". ")
-        procedure.steps.forEach { step ->
-            append(step.title).append(". ")
-            append(step.description).append(". ")
-            append(step.textoAyuda).append(". ")
-        }
-    }
-
-    LaunchedEffect(procedure.id) {
-        controlador.cargarComentarios(procedure.id)
-    }
-
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(procedure.institution) },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { controlador.alternarFavorito(procedure.id) }) {
-                        Icon(
-                            if (controlador.favoritos.contains(procedure.id)) Icons.Default.Bookmark else Icons.Default.BookmarkBorder,
-                            contentDescription = "Favorito"
-                        )
-                    }
-                }
-            )
-        }
-    ) { padding ->
-        LazyColumn(
-            modifier = Modifier.padding(padding).fillMaxSize(),
-            contentPadding = PaddingValues(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Text(procedure.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text(procedure.summary, style = cuerpoLegible(controlador))
-                Spacer(Modifier.height(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(
-                        onClick = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(procedure.urlOficial)))
-                        },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Icon(Icons.Default.OpenInBrowser, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text("Portal oficial", maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
-                    }
-                    OutlinedButton(
-                        onClick = {
-                            if (speaker.isSpeaking) speaker.detener() else speaker.leer(fullText)
-                        },
-                        modifier = Modifier.weight(1f).height(48.dp),
-                        shape = RoundedCornerShape(8.dp),
-                        contentPadding = PaddingValues(horizontal = 8.dp)
-                    ) {
-                        Icon(if (speaker.isSpeaking) Icons.Default.Stop else Icons.Default.PlayArrow, contentDescription = null)
-                        Spacer(Modifier.width(8.dp))
-                        Text(
-                            if (speaker.isSpeaking) "Detener" else "Escuchar",
-                            maxLines = 1,
-                            softWrap = false,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-            items(procedure.steps, key = { it.id }) { step ->
-                TarjetaPasoGuia(
-                    title = step.title,
-                    description = step.description,
-                    textoAyuda = step.textoAyuda,
-                    espacioImagen = step.espacioImagen,
-                    elementosRevision = step.elementosRevision,
-                    completed = completed.contains(step.id),
-                    onCompletedChange = { controlador.alternarPaso(procedure.id, step.id) },
-                    textoGrande = controlador.configuracionAccesibilidad.textoGrande
-                )
-            }
-            item {
-                SeccionForo(
-                    controlador = controlador,
-                    procedure = procedure,
-                    commentText = commentText,
-                    onCommentTextChange = { commentText = it },
-                    onPublish = {
-                        controlador.agregarComentario(procedure.id, commentText)
-                        commentText = ""
-                    }
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PantallaListaTramites(
-    title: String,
-    emptyText: String,
-    tramites: List<Tramite>,
-    controlador: ControladorAsistenTed,
-    navController: NavHostController
-) {
-    val tramitesUnicos = tramites.distinctBy { it.id }
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text(title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        }
-        if (tramitesUnicos.isEmpty()) {
-            item { TarjetaAviso(title = "Sin datos", text = emptyText) }
-        } else {
-            items(tramitesUnicos, key = { it.id }) { procedure ->
-                TarjetaTramite(
-                    procedure = procedure,
-                    isFavorite = controlador.favoritos.contains(procedure.id),
-                    onFavorite = { controlador.alternarFavorito(procedure.id) },
-                    onOpen = {
-                        controlador.marcarConsultado(procedure.id)
-                        navController.navigate(Rutas.detail(procedure.id))
-                    },
-                    textoGrande = controlador.configuracionAccesibilidad.textoGrande
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun PantallaRecordatorios(controlador: ControladorAsistenTed) {
-    val context = LocalContext.current
-    var selectedTramiteId by remember { mutableStateOf(controlador.tramites.first().id) }
-    var title by remember { mutableStateOf("") }
-    var notes by remember { mutableStateOf("") }
-    var date by remember { mutableStateOf(LocalDateTime.now().plusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE)) }
-    var time by remember { mutableStateOf("09:00") }
-    val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
-
-    LazyColumn(
-        modifier = Modifier.fillMaxSize().statusBarsPadding(),
-        contentPadding = PaddingValues(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        item {
-            Text("Recordatorios", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-            Text("Agenda una fecha para volver a revisar un trámite.", style = cuerpoLegible(controlador))
-        }
-        if (controlador.usuarioActual?.esInvitado == true) {
-            item {
-                TarjetaAviso("Cuenta necesaria", "Para guardar recordatorios y recibir avisos necesitas iniciar sesión.")
-            }
-        } else {
-            item {
-                Card(shape = RoundedCornerShape(8.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-                    Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Nuevo recordatorio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        SelectorTramite(controlador.tramites, selectedTramiteId) { selectedTramiteId = it }
-                        CampoEntrada(
-                            valor = title,
-                            alCambiar = { title = it },
-                            etiqueta = "Título",
-                            accionIme = ImeAction.Next,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        CampoEntrada(
-                            valor = notes,
-                            alCambiar = { notes = it },
-                            etiqueta = "Nota de ayuda",
-                            ayuda = "Escribe una pista corta para recordar que debes hacer.",
-                            accionIme = ImeAction.Next,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            CampoEntrada(
-                                valor = date,
-                                alCambiar = { date = it },
-                                etiqueta = "Fecha",
-                                ayuda = "AAAA-MM-DD",
-                                accionIme = ImeAction.Next,
-                                modifier = Modifier.weight(1f)
-                            )
-                            CampoEntrada(
-                                valor = time,
-                                alCambiar = { time = it },
-                                etiqueta = "Hora",
-                                ayuda = "HH:MM",
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Button(
-                            onClick = {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                                    ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-                                ) {
-                                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                }
-                                val millis = analizarFechaHora(date, time)
-                                if (millis == null) {
-                                    controlador.mostrarMensaje("Usa una fecha y hora válidas.")
-                                } else {
-                                    controlador.agregarRecordatorio(selectedTramiteId, title, notes, millis)
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth().height(52.dp),
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Text("Guardar recordatorio", maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        }
-                    }
-                }
-            }
-        }
-        items(controlador.recordatorios, key = { it.id }) { reminder ->
-            TarjetaRecordatorio(reminder, controlador)
-        }
-    }
-}
-
-@Composable
-private fun PantallaPerfil(controlador: ControladorAsistenTed) {
-    val user = controlador.usuarioActual
-    val puedeEditarPerfil = user?.esInvitado != true
-    var nombre by remember(user?.uid) { mutableStateOf(user?.nombre.orEmpty()) }
-    var apellido by remember(user?.uid) { mutableStateOf(user?.apellido.orEmpty()) }
-    var selectedAvatarId by remember(user?.uid) { mutableStateOf(user?.avatarId ?: AvataresPerfil.defaultId) }
-    val selectedAvatar = AvataresPerfil.find(selectedAvatarId)
-
-    Column(
-        Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
-            .padding(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Perfil", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        if (user?.esInvitado == true) {
-            TarjetaAviso("Estás como anónimo", "Puedes consultar guías. Para editar nombre, apellido o avatar debes crear una cuenta.")
-        }
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            VistaAvatar(avatar = selectedAvatar, size = 76)
-            Column {
-                Text(user?.nombreVisible.orEmpty(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text("Avatar preestablecido: ${selectedAvatar.label}", style = MaterialTheme.typography.bodyMedium)
-            }
-        }
-        CampoEntrada(
-            valor = user?.username.orEmpty(),
-            alCambiar = {},
-            etiqueta = "Usuario",
-            habilitado = false,
-            modifier = Modifier.fillMaxWidth()
-        )
-        CampoEntrada(
-            valor = nombre,
-            alCambiar = { nombre = it },
-            etiqueta = "Nombre",
-            habilitado = puedeEditarPerfil,
-            accionIme = ImeAction.Next,
-            modifier = Modifier.fillMaxWidth()
-        )
-        CampoEntrada(
-            valor = apellido,
-            alCambiar = { apellido = it },
-            etiqueta = "Apellido",
-            habilitado = puedeEditarPerfil,
-            modifier = Modifier.fillMaxWidth()
-        )
-        SelectorAvatar(
-            selectedAvatarId = selectedAvatarId,
-            habilitado = puedeEditarPerfil,
-            onSelected = { selectedAvatarId = it }
-        )
-        TarjetaAviso("Foto de perfil", "Elige una imagen preestablecida. La app no sube fotos personales ni usa almacenamiento en la nube.")
-        Button(
-            onClick = { controlador.actualizarPerfil(nombre, apellido, selectedAvatarId) },
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(8.dp),
-            enabled = puedeEditarPerfil
-        ) {
-            Text("Guardar cambios")
-        }
-        OutlinedButton(
-            onClick = controlador::cerrarSesion,
-            modifier = Modifier.fillMaxWidth().height(52.dp),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Cerrar sesión")
-        }
-    }
-}
-
-@Composable
-private fun SelectorAvatar(
-    selectedAvatarId: String,
-    habilitado: Boolean,
-    onSelected: (String) -> Unit
-) {
-    Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Selecciona tu avatar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(
-                if (habilitado) "Son imágenes locales de la app. No se sube ningún archivo personal." else "Disponible cuando inicies sesión con una cuenta.",
-                style = MaterialTheme.typography.bodyMedium
-            )
-            AvataresPerfil.options.chunked(3).forEach { row ->
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
-                    row.forEach { avatar ->
-                        TarjetaOpcionAvatar(
-                            avatar = avatar,
-                            selected = avatar.id == selectedAvatarId,
-                            habilitado = habilitado,
-                            onClick = { onSelected(avatar.id) },
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                    repeat(3 - row.size) {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TarjetaOpcionAvatar(
-    avatar: AvatarPerfil,
-    selected: Boolean,
-    habilitado: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Card(
-        onClick = onClick,
-        enabled = habilitado,
-        modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
-        colors = CardDefaults.cardColors(
-            containerColor = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-        )
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
-        ) {
-            VistaAvatar(avatar = avatar, size = 52)
-            Text(avatar.label, style = MaterialTheme.typography.labelMedium, maxLines = 1)
-        }
-    }
-}
-
-@Composable
-private fun VistaAvatar(avatar: AvatarPerfil, size: Int) {
-    Box(
-        modifier = Modifier
-            .size(size.dp)
-            .background(avatar.background, CircleShape),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(
-            avatar.initials,
-            color = avatar.foreground,
-            style = MaterialTheme.typography.titleLarge,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-private data class AvatarPerfil(
-    val id: String,
-    val label: String,
-    val initials: String,
-    val background: Color,
-    val foreground: Color
-)
-
-private object AvataresPerfil {
-    const val defaultId = "azul"
-
-    val options = listOf(
-        AvatarPerfil("azul", "Azul", "AZ", Color(0xFFDDEBFF), Color(0xFF204D85)),
-        AvatarPerfil("amarillo", "Amarillo", "AM", Color(0xFFFFF4C2), Color(0xFF6E5200)),
-        AvatarPerfil("rojo", "Rojo", "RJ", Color(0xFFFFE1E1), Color(0xFF8B2E2E)),
-        AvatarPerfil("verde", "Verde", "VE", Color(0xFFDFF5E3), Color(0xFF236336)),
-        AvatarPerfil("celeste", "Celeste", "CE", Color(0xFFD8F3FF), Color(0xFF1E5C70)),
-        AvatarPerfil("violeta", "Violeta", "VI", Color(0xFFEDE4FF), Color(0xFF59408C))
-    )
-
-    fun find(id: String): AvatarPerfil = options.firstOrNull { it.id == id } ?: options.first()
-}
-
-@Composable
-private fun PantallaAccesibilidad(controlador: ControladorAsistenTed) {
-    val configuracion = controlador.configuracionAccesibilidad
-    Column(
-        Modifier
-            .fillMaxSize()
-            .statusBarsPadding()
-            .padding(start = 16.dp, top = 10.dp, end = 16.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text("Accesibilidad", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text("Ajusta la lectura visual de toda la app.", style = cuerpoLegible(controlador))
-        FilaConfiguracion(
-            title = "Texto grande",
-            description = "Aumenta el tamaño de explicaciones, ayudas y pasos.",
-            checked = configuracion.textoGrande,
-            onCheckedChange = { controlador.actualizarAccesibilidad(configuracion.copy(textoGrande = it)) }
-        )
-        FilaConfiguracion(
-            title = "Alto contraste",
-            description = "Usa fondo oscuro y colores más fuertes para leer mejor.",
-            checked = configuracion.altoContraste,
-            onCheckedChange = { controlador.actualizarAccesibilidad(configuracion.copy(altoContraste = it)) }
-        )
-    }
-}
-@Composable
-private fun TarjetaTramite(
-    procedure: Tramite,
-    isFavorite: Boolean,
-    onFavorite: () -> Unit,
-    onOpen: () -> Unit,
-    textoGrande: Boolean
-) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.Top) {
-                Column(Modifier.weight(1f)) {
-                    Text(procedure.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(procedure.institution, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                }
-                IconButton(onClick = onFavorite) {
-                    Icon(if (isFavorite) Icons.Default.Bookmark else Icons.Default.BookmarkBorder, contentDescription = "Favorito")
-                }
-            }
-            Text(procedure.summary, style = MaterialTheme.typography.bodyMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                AssistChip(onClick = {}, label = { Text(procedure.category) })
-                AssistChip(onClick = {}, label = { Text("${procedure.steps.size} pasos") })
-            }
-            Button(onClick = onOpen, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(8.dp)) {
-                Text("Ver guía")
-            }
-        }
-    }
-}
-
-@Composable
-private fun TarjetaPasoGuia(
-    title: String,
-    description: String,
-    textoAyuda: String,
-    espacioImagen: String,
-    elementosRevision: List<String>,
-    completed: Boolean,
-    onCompletedChange: () -> Unit,
-    textoGrande: Boolean
-) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Checkbox(checked = completed, onCheckedChange = { onCompletedChange() })
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
-            }
-            Text(description, style = MaterialTheme.typography.bodyLarge)
-            TarjetaAviso("Ayuda", textoAyuda)
-            Card(
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(espacioImagen, modifier = Modifier.padding(14.dp), style = MaterialTheme.typography.bodyMedium)
-            }
-            elementosRevision.forEach { item ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text(item, style = MaterialTheme.typography.bodyMedium)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun SeccionForo(
-    controlador: ControladorAsistenTed,
-    procedure: Tramite,
-    commentText: String,
-    onCommentTextChange: (String) -> Unit,
-    onPublish: () -> Unit
-) {
-    var comentarioEditandoId by remember(procedure.id) { mutableStateOf<String?>(null) }
-    var textoEdicion by remember(procedure.id) { mutableStateOf("") }
-    var comentarioRespondiendoId by remember(procedure.id) { mutableStateOf<String?>(null) }
-    var textoRespuesta by remember(procedure.id) { mutableStateOf("") }
-    val puedeParticipar = controlador.usuarioActual?.esInvitado != true
-    val comentarios = controlador.comentarios[procedure.id].orEmpty()
-    val comentariosPrincipales = comentarios.filter { it.respuestaAId == null }
-
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        HorizontalDivider()
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Forum, contentDescription = null)
-            Spacer(Modifier.width(8.dp))
-            Text("Foro del trámite", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        }
-        if (!puedeParticipar) {
-            TarjetaAviso("Solo lectura", "Inicia sesión para publicar preguntas o comentarios.")
-        } else {
-            CampoEntrada(
-                valor = commentText,
-                alCambiar = onCommentTextChange,
-                etiqueta = "Pregunta o comentario",
-                ayuda = "Escribe con respeto y evita datos personales sensibles.",
-                modifier = Modifier.fillMaxWidth()
-            )
-            Button(
-                onClick = onPublish,
-                modifier = Modifier.fillMaxWidth().height(52.dp),
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Publicar")
-            }
-        }
-
-        if (comentarios.isEmpty()) {
-            Text("Aún no hay comentarios para este trámite.", style = MaterialTheme.typography.bodyMedium)
-        } else {
-            comentariosPrincipales.forEach { comment ->
-                TarjetaComentarioForo(
-                    controlador = controlador,
-                    comment = comment,
-                    puedeParticipar = puedeParticipar,
-                    esRespuesta = false,
-                    editando = comentarioEditandoId == comment.id,
-                    textoEdicion = textoEdicion,
-                    onTextoEdicion = { textoEdicion = it },
-                    respondiendo = comentarioRespondiendoId == comment.id,
-                    textoRespuesta = textoRespuesta,
-                    onTextoRespuesta = { textoRespuesta = it },
-                    onIniciarEdicion = {
-                        comentarioEditandoId = comment.id
-                        textoEdicion = comment.text
-                        comentarioRespondiendoId = null
-                    },
-                    onCancelarEdicion = {
-                        comentarioEditandoId = null
-                        textoEdicion = ""
-                    },
-                    onGuardarEdicion = {
-                        controlador.editarComentario(comment, textoEdicion)
-                        comentarioEditandoId = null
-                        textoEdicion = ""
-                    },
-                    onEliminar = { controlador.eliminarComentario(comment) },
-                    onIniciarRespuesta = {
-                        comentarioRespondiendoId = comment.id
-                        textoRespuesta = ""
-                        comentarioEditandoId = null
-                    },
-                    onCancelarRespuesta = {
-                        comentarioRespondiendoId = null
-                        textoRespuesta = ""
-                    },
-                    onEnviarRespuesta = {
-                        controlador.responderComentario(comment, textoRespuesta)
-                        comentarioRespondiendoId = null
-                        textoRespuesta = ""
-                    }
-                )
-                comentarios.filter { it.respuestaAId == comment.id }.forEach { reply ->
-                    Box(Modifier.padding(start = 24.dp)) {
-                        TarjetaComentarioForo(
-                            controlador = controlador,
-                            comment = reply,
-                            puedeParticipar = puedeParticipar,
-                            esRespuesta = true,
-                            editando = comentarioEditandoId == reply.id,
-                            textoEdicion = textoEdicion,
-                            onTextoEdicion = { textoEdicion = it },
-                            respondiendo = false,
-                            textoRespuesta = textoRespuesta,
-                            onTextoRespuesta = { textoRespuesta = it },
-                            onIniciarEdicion = {
-                                comentarioEditandoId = reply.id
-                                textoEdicion = reply.text
-                                comentarioRespondiendoId = null
-                            },
-                            onCancelarEdicion = {
-                                comentarioEditandoId = null
-                                textoEdicion = ""
-                            },
-                            onGuardarEdicion = {
-                                controlador.editarComentario(reply, textoEdicion)
-                                comentarioEditandoId = null
-                                textoEdicion = ""
-                            },
-                            onEliminar = { controlador.eliminarComentario(reply) },
-                            onIniciarRespuesta = {},
-                            onCancelarRespuesta = {},
-                            onEnviarRespuesta = {}
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TarjetaComentarioForo(
-    controlador: ControladorAsistenTed,
-    comment: ComentarioForo,
-    puedeParticipar: Boolean,
-    esRespuesta: Boolean,
-    editando: Boolean,
-    textoEdicion: String,
-    onTextoEdicion: (String) -> Unit,
-    respondiendo: Boolean,
-    textoRespuesta: String,
-    onTextoRespuesta: (String) -> Unit,
-    onIniciarEdicion: () -> Unit,
-    onCancelarEdicion: () -> Unit,
-    onGuardarEdicion: () -> Unit,
-    onEliminar: () -> Unit,
-    onIniciarRespuesta: () -> Unit,
-    onCancelarRespuesta: () -> Unit,
-    onEnviarRespuesta: () -> Unit
-) {
-    val esPropietario = controlador.usuarioActual?.uid == comment.userId && puedeParticipar
-
-    Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text(if (esRespuesta) "Respuesta de ${comment.username}" else comment.username, fontWeight = FontWeight.Bold)
-                    val fecha = if (comment.editadoEnMillis != null) "${formatearFecha(comment.createdAtMillis)} - editado" else formatearFecha(comment.createdAtMillis)
-                    Text(fecha, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-
-            if (editando) {
-                CampoEntrada(
-                    valor = textoEdicion,
-                    alCambiar = onTextoEdicion,
-                    etiqueta = "Editar comentario",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onGuardarEdicion, shape = RoundedCornerShape(8.dp)) { Text("Guardar") }
-                    TextButton(onClick = onCancelarEdicion) { Text("Cancelar") }
-                }
-            } else {
-                Text(comment.text, style = MaterialTheme.typography.bodyMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    if (puedeParticipar && !esRespuesta) {
-                        TextButton(onClick = onIniciarRespuesta) { Text("Responder") }
-                    }
-                    if (esPropietario) {
-                        TextButton(onClick = onIniciarEdicion) { Text("Editar") }
-                        TextButton(onClick = onEliminar) { Text("Eliminar") }
-                    }
-                }
-            }
-
-            if (respondiendo) {
-                CampoEntrada(
-                    valor = textoRespuesta,
-                    alCambiar = onTextoRespuesta,
-                    etiqueta = "Responder a ${comment.username}",
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = onEnviarRespuesta, shape = RoundedCornerShape(8.dp)) { Text("Enviar") }
-                    TextButton(onClick = onCancelarRespuesta) { Text("Cancelar") }
-                }
-            }
-        }
-    }
-}
-@Composable
-private fun SelectorTramite(tramites: List<Tramite>, selectedId: String, onSelected: (String) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text("Trámite relacionado", style = MaterialTheme.typography.labelLarge)
-        tramites.take(6).forEach { procedure ->
-            FilterChip(
-                selected = selectedId == procedure.id,
-                onClick = { onSelected(procedure.id) },
-                label = { Text(procedure.title) }
-            )
-        }
-    }
-}
-
-@Composable
-private fun TarjetaRecordatorio(reminder: Recordatorio, controlador: ControladorAsistenTed) {
-    val procedure = controlador.buscarTramite(reminder.tramiteId)
-    Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(14.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Notifications, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.width(10.dp))
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                Text(reminder.title, fontWeight = FontWeight.Bold)
-                Text(procedure?.title ?: "Trámite", style = MaterialTheme.typography.bodyMedium)
-                Text(formatearFecha(reminder.programadoEnMillis), style = MaterialTheme.typography.labelMedium)
-                if (reminder.notes.isNotBlank()) Text(reminder.notes, style = MaterialTheme.typography.bodySmall)
-            }
-            IconButton(onClick = { controlador.borrarRecordatorio(reminder) }) {
-                Icon(Icons.Default.Delete, contentDescription = "Eliminar")
-            }
-        }
-    }
-}
-
-@Composable
-private fun FilaConfiguracion(title: String, description: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Card(shape = RoundedCornerShape(8.dp), modifier = Modifier.fillMaxWidth()) {
-        Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text(description, style = MaterialTheme.typography.bodyMedium)
-            }
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
-        }
-    }
-}
-
-@Composable
-private fun TarjetaAviso(title: String, text: String) {
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-            Text(text, style = MaterialTheme.typography.bodyMedium)
-        }
-    }
-}
-
 @Composable
 private fun BarraInferiorPrincipal(
     navController: NavHostController,
@@ -2086,10 +1236,6 @@ private object Rutas {
 }
 
 @Composable
-private fun cuerpoLegible(controlador: ControladorAsistenTed) =
-    MaterialTheme.typography.bodyLarge
-
-@Composable
 private fun recordarLectorGuia(): LectorGuia {
     val context = LocalContext.current
     val speaker = remember { LectorGuia(context.applicationContext) }
@@ -2128,24 +1274,6 @@ class LectorGuia(context: Context) : TextToSpeech.OnInitListener {
         textToSpeech.stop()
         textToSpeech.shutdown()
     }
-}
-
-private fun analizarFechaHora(date: String, time: String): Long? {
-    return try {
-        LocalDateTime.parse("$date $time", DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
-            .atZone(ZoneId.systemDefault())
-            .toInstant()
-            .toEpochMilli()
-    } catch (_: DateTimeParseException) {
-        null
-    }
-}
-
-private fun formatearFecha(millis: Long): String {
-    val formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
-    return Instant.ofEpochMilli(millis)
-        .atZone(ZoneId.systemDefault())
-        .format(formatter)
 }
 
 
