@@ -2,8 +2,8 @@
 
 import com.asistented.app.datos.modelos.ElementoHistorial
 import com.asistented.app.datos.modelos.PerfilUsuario
-import com.asistented.app.datos.CatalogoTramites
-import com.asistented.app.datos.gobec.RepositorioCatalogoTramites
+import com.asistented.app.datos.modelos.PasoGuia
+import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.datos.gobec.SelectorTramitesGobEc
 import com.asistented.app.datos.gobec.TextoHtmlGobEc
 import com.asistented.app.datos.gobec.TramiteGobEcDto
@@ -85,8 +85,8 @@ class ReglasUsuarioTest {
 
     @Test
     fun filtrarTramites_buscaPorNombreEInstitucion() {
-        val porNombre = filtrarTramites(CatalogoTramites.tramites, "LICENCIA", null)
-        val porInstitucion = filtrarTramites(CatalogoTramites.tramites, "", "SRI")
+        val porNombre = filtrarTramites(tramitesDePrueba, "LICENCIA", null)
+        val porInstitucion = filtrarTramites(tramitesDePrueba, "", "SRI")
 
         assertEquals(listOf("licencia"), porNombre.map { it.id })
         assertEquals(listOf("ruc", "impuestos"), porInstitucion.map { it.id })
@@ -94,17 +94,17 @@ class ReglasUsuarioTest {
 
     @Test
     fun filtrarTramites_devuelveTodoOVacioSegunLaConsulta() {
-        val todos = filtrarTramites(CatalogoTramites.tramites, "   ", null)
-        val sinResultados = filtrarTramites(CatalogoTramites.tramites, "tramite inexistente", null)
+        val todos = filtrarTramites(tramitesDePrueba, "   ", null)
+        val sinResultados = filtrarTramites(tramitesDePrueba, "tramite inexistente", null)
 
-        assertEquals(CatalogoTramites.tramites, todos)
+        assertEquals(tramitesDePrueba, todos)
         assertTrue(sinResultados.isEmpty())
     }
 
     @Test
     fun seleccionarTramitesFavoritos_conservaElOrdenDelCatalogo() {
         val seleccionados = seleccionarTramitesFavoritos(
-            tramites = CatalogoTramites.tramites,
+            tramites = tramitesDePrueba,
             favoritos = setOf("licencia", "cedula", "id-inexistente")
         )
 
@@ -113,8 +113,8 @@ class ReglasUsuarioTest {
 
     @Test
     fun filtrarTramitesNotificaciones_buscaPorTituloOInstitucion() {
-        val porTitulo = filtrarTramitesNotificaciones(CatalogoTramites.tramites, "pasaporte")
-        val porInstitucion = filtrarTramitesNotificaciones(CatalogoTramites.tramites, "ANT")
+        val porTitulo = filtrarTramitesNotificaciones(tramitesDePrueba, "pasaporte")
+        val porInstitucion = filtrarTramitesNotificaciones(tramitesDePrueba, "ANT")
 
         assertEquals(listOf("pasaporte"), porTitulo.map { it.id })
         assertEquals(listOf("licencia"), porInstitucion.map { it.id })
@@ -135,7 +135,7 @@ class ReglasUsuarioTest {
     @Test
     fun seleccionarTramitesHistorial_respetaOrdenYDescartaIdsInvalidos() {
         val seleccionados = seleccionarTramitesHistorial(
-            tramites = CatalogoTramites.tramites,
+            tramites = tramitesDePrueba,
             idsHistorial = listOf("licencia", "cedula", "licencia", "id-inexistente")
         )
 
@@ -152,7 +152,7 @@ class ReglasUsuarioTest {
 
     @Test
     fun construirTextoGuia_incluyeResumenYPasos() {
-        val tramite = CatalogoTramites.tramites.first()
+        val tramite = tramitesDePrueba.first()
         val texto = construirTextoGuia(tramite)
 
         assertTrue(texto.contains(tramite.summary))
@@ -254,47 +254,64 @@ class ReglasUsuarioTest {
         assertEquals("2026-08-08", remoto.actualizadoEn)
     }
 
-    @Test
-    fun combinarCatalogos_conservaLocalesCuandoNoHayInternet() {
-        val combinados = RepositorioCatalogoTramites.combinarCatalogos(
-            locales = CatalogoTramites.tramites,
-            remotos = emptyList()
-        )
-
-        assertEquals(CatalogoTramites.tramites.map { it.id }, combinados.map { it.id })
-    }
-
-    @Test
-    fun combinarCatalogos_usaCatalogoOficialCuandoExisteCacheORed() {
-        val remoto = tramiteGobEc("1002", "Certificado de Registro Único de Contribuyente (RUC)", institucion = "8").aTramite()
-
-        val combinados = RepositorioCatalogoTramites.combinarCatalogos(
-            locales = CatalogoTramites.tramites,
-            remotos = listOf(remoto)
-        )
-
-        assertEquals(listOf("gobec_1002"), combinados.map { it.id })
-    }
-
-    @Test
-    fun refrescoIncompleto_conservaElUltimoCacheOficial() {
-        val cache = (1..8).map { indice ->
-            tramiteGobEc(
-                id = "cache_$indice",
-                nombre = "Trámite oficial $indice"
-            ).aTramite()
-        }
-        val remotoIncompleto = cache.take(3)
-
-        val resultado = RepositorioCatalogoTramites.resolverCatalogoTrasRefresco(
-            locales = CatalogoTramites.tramites,
-            cache = cache,
-            remotos = remotoIncompleto
-        )
-
-        assertEquals(cache.map { it.id }, resultado.map { it.id })
-    }
 }
+
+private val pasoDePrueba = PasoGuia(
+    id = "paso_1",
+    title = "Preparar lo necesario",
+    description = "Reúne tus documentos.",
+    textoAyuda = "Ten los documentos a la mano.",
+    elementosRevision = listOf("Revisé mis documentos."),
+    espacioImagen = ""
+)
+
+private val tramitesDePrueba = listOf(
+    Tramite(
+        id = "cedula",
+        title = "Renovación u obtención de cédula",
+        institution = "Registro Civil",
+        summary = "Guía de prueba para cédula.",
+        category = "Identidad",
+        urlOficial = "https://www.gob.ec/cedula",
+        steps = listOf(pasoDePrueba)
+    ),
+    Tramite(
+        id = "ruc",
+        title = "Registro Único de Contribuyentes (RUC)",
+        institution = "SRI",
+        summary = "Guía de prueba para RUC.",
+        category = "Tributario",
+        urlOficial = "https://www.gob.ec/ruc",
+        steps = listOf(pasoDePrueba)
+    ),
+    Tramite(
+        id = "impuestos",
+        title = "Declaración de impuestos en línea",
+        institution = "SRI",
+        summary = "Guía de prueba para impuestos.",
+        category = "Tributario",
+        urlOficial = "https://www.gob.ec/impuestos",
+        steps = listOf(pasoDePrueba)
+    ),
+    Tramite(
+        id = "licencia",
+        title = "Obtención o renovación de licencia",
+        institution = "ANT",
+        summary = "Guía de prueba para licencia.",
+        category = "Movilidad",
+        urlOficial = "https://www.gob.ec/licencia",
+        steps = listOf(pasoDePrueba)
+    ),
+    Tramite(
+        id = "pasaporte",
+        title = "Solicitud de pasaporte",
+        institution = "Registro Civil",
+        summary = "Guía de prueba para pasaporte.",
+        category = "Identidad",
+        urlOficial = "https://www.gob.ec/pasaporte",
+        steps = listOf(pasoDePrueba)
+    )
+)
 
 private fun tramiteGobEc(
     id: String,

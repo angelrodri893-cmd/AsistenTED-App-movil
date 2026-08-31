@@ -1,44 +1,22 @@
 package com.asistented.app.datos.gobec
 
-import com.asistented.app.datos.CatalogoTramites
-import com.asistented.app.datos.PreferenciasLocales
 import com.asistented.app.datos.modelos.PasoGuia
 import com.asistented.app.datos.modelos.Tramite
-import org.json.JSONArray
 
 internal class RepositorioCatalogoTramites(
-    private val preferenciasLocales: PreferenciasLocales,
-    private val cliente: ClienteGobEc = ClienteGobEc(),
-    private val relojMillis: () -> Long = { System.currentTimeMillis() }
+    private val cliente: ClienteGobEc = ClienteGobEc()
 ) {
-    fun cargarCatalogoConCache(): List<Tramite> =
-        combinarCatalogos(CatalogoTramites.tramites, cargarTramitesCache())
-
-    fun requiereRefresco(): Boolean {
-        val cache = preferenciasLocales.cargarCacheTramitesGobEc()
-        val guardadoEn = preferenciasLocales.cargarFechaCacheTramitesGobEc()
-        return cache.isNullOrBlank() || relojMillis() - guardadoEn > DURACION_CACHE_MILLIS
-    }
-
-    suspend fun refrescarCatalogo(): List<Tramite> {
-        val cacheAnterior = cargarTramitesCache()
+    suspend fun cargarCatalogo(): List<Tramite> {
         val candidatos = cargarCandidatosApi()
         val seleccionados = SelectorTramitesGobEc.seleccionar(candidatos)
         if (seleccionados.size < CANTIDAD_TRAMITES_OFICIALES) {
-            return resolverCatalogoTrasRefresco(
-                locales = CatalogoTramites.tramites,
-                cache = cacheAnterior,
-                remotos = emptyList()
-            )
+            throw CatalogoNoDisponibleException()
         }
 
         val enriquecidos = enriquecerConInstituciones(seleccionados)
-        guardarCache(enriquecidos)
-        return resolverCatalogoTrasRefresco(
-            locales = CatalogoTramites.tramites,
-            cache = cacheAnterior,
-            remotos = enriquecidos.map { it.aTramite() }
-        )
+        return enriquecidos
+            .map { it.aTramite() }
+            .distinctBy { it.id }
     }
 
     private suspend fun enriquecerConInstituciones(
@@ -64,7 +42,7 @@ internal class RepositorioCatalogoTramites(
         val prioritarios = SelectorTramitesGobEc.idsPrioritarios
             .mapNotNull { id -> cliente.obtenerTramite(id) }
 
-        if (SelectorTramitesGobEc.seleccionar(prioritarios).size >= 8) {
+        if (SelectorTramitesGobEc.seleccionar(prioritarios).size >= CANTIDAD_TRAMITES_OFICIALES) {
             return prioritarios
         }
 
@@ -79,42 +57,14 @@ internal class RepositorioCatalogoTramites(
         return prioritarios + fallback
     }
 
-    private fun cargarTramitesCache(): List<Tramite> {
-        val json = preferenciasLocales.cargarCacheTramitesGobEc().orEmpty()
-        if (json.isBlank()) return emptyList()
-        return runCatching {
-            val array = JSONArray(json)
-            List(array.length()) { indice ->
-                TramiteGobEcDto.fromJson(array.getJSONObject(indice)).aTramite()
-            }
-        }.getOrDefault(emptyList())
-    }
-
-    private fun guardarCache(tramites: List<TramiteGobEcDto>) {
-        val array = JSONArray()
-        tramites.forEach { array.put(it.toJson()) }
-        // El catalogo local queda siempre disponible; el cache solo acelera y sostiene los datos oficiales sin internet.
-        preferenciasLocales.guardarCacheTramitesGobEc(array.toString(), relojMillis())
-    }
-
     internal companion object {
         private const val CANTIDAD_TRAMITES_OFICIALES = 8
-        private const val DURACION_CACHE_MILLIS = 24 * 60 * 60 * 1000L
-
-        fun combinarCatalogos(locales: List<Tramite>, remotos: List<Tramite>): List<Tramite> =
-            remotos.distinctBy { it.id }.takeIf { it.isNotEmpty() } ?: locales.distinctBy { it.id }
-
-        fun resolverCatalogoTrasRefresco(
-            locales: List<Tramite>,
-            cache: List<Tramite>,
-            remotos: List<Tramite>
-        ): List<Tramite> = when {
-            remotos.size >= CANTIDAD_TRAMITES_OFICIALES -> remotos.distinctBy { it.id }
-            cache.isNotEmpty() -> cache.distinctBy { it.id }
-            else -> locales.distinctBy { it.id }
-        }
     }
 }
+
+internal class CatalogoNoDisponibleException : IllegalStateException(
+    "No se pudo obtener un catálogo oficial completo desde Gob.Ec."
+)
 
 internal fun TramiteGobEcDto.aTramite(): Tramite {
     val requisitos = listOf(requisitosObligatorios, requisitosEspeciales)

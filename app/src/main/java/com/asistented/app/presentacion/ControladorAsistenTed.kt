@@ -6,7 +6,6 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.PreferenciasLocales
 import com.asistented.app.datos.RepositorioAutenticacion
 import com.asistented.app.datos.RepositorioForo
@@ -30,19 +29,23 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+enum class EstadoCatalogo {
+    CARGANDO,
+    DISPONIBLE,
+    ERROR_CONEXION
+}
+
 class ControladorAsistenTed(context: Context) {
     private val appContext = context.applicationContext
     private val preferenciasLocales = PreferenciasLocales(appContext)
     private val repositorioAutenticacion = RepositorioAutenticacion()
     private val repositorioUsuario = RepositorioUsuario()
     private val repositorioForo = RepositorioForo()
-    private val repositorioCatalogo = RepositorioCatalogoTramites(preferenciasLocales)
+    private val repositorioCatalogo = RepositorioCatalogoTramites()
     private val programadorRecordatorios = ProgramadorRecordatorios(appContext)
     private val alcanceTrabajo = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
-    val tramites = mutableStateListOf<Tramite>().apply {
-        addAll(repositorioCatalogo.cargarCatalogoConCache())
-    }
+    val tramites = mutableStateListOf<Tramite>()
     val favoritos = mutableStateListOf<String>()
     val historial = mutableStateListOf<ElementoHistorial>()
     val recordatorios = mutableStateListOf<Recordatorio>()
@@ -55,7 +58,7 @@ class ControladorAsistenTed(context: Context) {
         private set
     var cargando by mutableStateOf(false)
         private set
-    var actualizandoCatalogo by mutableStateOf(false)
+    var estadoCatalogo by mutableStateOf(EstadoCatalogo.CARGANDO)
         private set
     var mensaje by mutableStateOf<String?>(null)
         private set
@@ -71,7 +74,7 @@ class ControladorAsistenTed(context: Context) {
         private set
 
     init {
-        actualizarCatalogoGobEc(forzar = false)
+        actualizarCatalogoGobEc()
         repositorioAutenticacion.usuarioActual { perfil ->
             perfil?.let { establecerUsuarioRegistrado(it) }
         }
@@ -81,25 +84,23 @@ class ControladorAsistenTed(context: Context) {
 
     fun mostrarMensaje(text: String) { mensaje = text }
 
-    fun buscarTramite(id: String): Tramite? =
-        tramites.firstOrNull { it.id == id } ?: CatalogoTramites.buscarTramite(id)
+    fun buscarTramite(id: String): Tramite? = tramites.firstOrNull { it.id == id }
 
-    fun actualizarCatalogoGobEc(forzar: Boolean = true) {
-        if (actualizandoCatalogo || (!forzar && !repositorioCatalogo.requiereRefresco())) return
-        actualizandoCatalogo = true
+    fun actualizarCatalogoGobEc() {
+        if (estadoCatalogo == EstadoCatalogo.CARGANDO && tramites.isNotEmpty()) return
+        estadoCatalogo = EstadoCatalogo.CARGANDO
+        tramites.clear()
         alcanceTrabajo.launch {
-            runCatching { repositorioCatalogo.refrescarCatalogo() }
+            runCatching { repositorioCatalogo.cargarCatalogo() }
                 .onSuccess { catalogoActualizado ->
-                    tramites.clear()
                     tramites.addAll(catalogoActualizado)
-                    if (forzar && catalogoActualizado.none { it.apiId != null }) {
-                        mensaje = "No se pudo actualizar Gob.Ec. Se mantienen las guías disponibles sin conexión."
-                    }
+                    estadoCatalogo = EstadoCatalogo.DISPONIBLE
+                    mensaje = null
                 }
                 .onFailure {
-                    if (forzar) mensaje = "No se pudo conectar con Gob.Ec. Inténtalo nuevamente."
+                    tramites.clear()
+                    estadoCatalogo = EstadoCatalogo.ERROR_CONEXION
                 }
-            actualizandoCatalogo = false
         }
     }
 

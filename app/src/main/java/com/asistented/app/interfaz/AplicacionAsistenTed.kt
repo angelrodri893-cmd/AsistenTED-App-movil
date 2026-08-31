@@ -101,6 +101,7 @@ import com.asistented.app.R
 import com.asistented.app.interfaz.tema.TemaAsistenTED
 import com.asistented.app.dominio.ReglasAutenticacion
 import com.asistented.app.presentacion.ControladorAsistenTed
+import com.asistented.app.presentacion.EstadoCatalogo
 import com.asistented.app.presentacion.esUsuarioDuplicadoEnAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -181,6 +182,21 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
 
     val avatarIdActual = controlador.usuarioActual?.avatarId.orEmpty()
 
+    when (controlador.estadoCatalogo) {
+        EstadoCatalogo.CARGANDO -> {
+            PantallaCargandoCatalogo(modifier = Modifier.statusBarsPadding())
+            return
+        }
+        EstadoCatalogo.ERROR_CONEXION -> {
+            PantallaErrorConexion(
+                onReintentar = controlador::actualizarCatalogoGobEc,
+                modifier = Modifier.statusBarsPadding()
+            )
+            return
+        }
+        EstadoCatalogo.DISPONIBLE -> Unit
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         bottomBar = { BarraInferiorPrincipal(navController, avatarIdActual) }
@@ -199,8 +215,6 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                     avatarId = avatarIdActual,
                     tramites = tramitesActuales,
                     favoritos = controlador.favoritos.toSet(),
-                    actualizandoCatalogo = controlador.actualizandoCatalogo,
-                    usandoCatalogoOficial = tramitesActuales.any { it.apiId != null },
                     mostrarAvisoInicial = controlador.mostrarAyudaPrincipal,
                     onAbrirTramite = { tramite ->
                         controlador.marcarConsultado(tramite.id)
@@ -217,7 +231,6 @@ fun AplicacionAsistenTed(controlador: ControladorAsistenTed) {
                         }
                     },
                     onDescartarAviso = controlador::descartarAyudaPrincipal,
-                    onActualizarCatalogo = controlador::actualizarCatalogoGobEc
                 )
             }
             composable(

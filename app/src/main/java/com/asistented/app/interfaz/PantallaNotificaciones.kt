@@ -70,7 +70,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.asistented.app.R
-import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.modelos.Recordatorio
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.interfaz.tema.TemaAsistenTED
@@ -739,9 +738,9 @@ private fun PreviewPantallaNotificacionesAmplia() {
 
 @Composable
 private fun PantallaNotificacionesPreview(mostrarAvisoInicial: Boolean = false) {
-    val tramite = CatalogoTramites.tramites.first()
+    val tramite = tramitesDeVistaPrevia.first()
     PantallaNotificaciones(
-        tramites = CatalogoTramites.tramites,
+        tramites = tramitesDeVistaPrevia,
         recordatorios = listOf(
             Recordatorio(
                 id = "preview",

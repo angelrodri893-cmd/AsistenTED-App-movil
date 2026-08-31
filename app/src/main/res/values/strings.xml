@@ -37,11 +37,12 @@
     <string name="home_search_placeholder">Buscar</string>
     <string name="home_search_error">No encontramos tr&#225;mites que coincidan.</string>
     <string name="home_filter_all">Todos</string>
-    <string name="home_catalog_updating">Actualizando informaci&#243;n oficial...</string>
-    <string name="home_catalog_official">Informaci&#243;n oficial de Gob.Ec</string>
-    <string name="home_catalog_offline">Gu&#237;as disponibles sin conexi&#243;n</string>
-    <string name="home_catalog_count">%1$d tr&#225;mites disponibles</string>
-    <string name="home_cd_refresh_catalog">Actualizar cat&#225;logo oficial</string>
+    <string name="catalog_loading_title">Cargando informaci&#243;n oficial...</string>
+    <string name="catalog_loading_description">Estamos consultando los tr&#225;mites directamente en Gob.Ec.</string>
+    <string name="catalog_connection_title">No hay conexi&#243;n</string>
+    <string name="catalog_connection_description">Para mostrar las gu&#237;as oficiales necesitas conectarte a internet. Revisa tu conexi&#243;n y vuelve a intentarlo.</string>
+    <string name="catalog_connection_retry">Intentar nuevamente</string>
+    <string name="catalog_connection_cd">Sin conexi&#243;n a internet</string>
     <string name="home_filter_registro_civil">Registro Civil</string>
     <string name="home_filter_sri">SRI</string>
     <string name="home_filter_ant">ANT</string>

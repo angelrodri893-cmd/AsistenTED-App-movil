@@ -24,9 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.BookmarkBorder
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SentimentSatisfiedAlt
 import androidx.compose.material.icons.filled.Warning
@@ -34,7 +31,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
@@ -69,7 +65,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.asistented.app.R
-import com.asistented.app.datos.CatalogoTramites
 import com.asistented.app.datos.modelos.ConfiguracionAccesibilidad
 import com.asistented.app.datos.modelos.Tramite
 import com.asistented.app.interfaz.tema.TemaAsistenTED
@@ -82,13 +77,10 @@ internal fun PantallaPrincipal(
     tramites: List<Tramite>,
     favoritos: Set<String>,
     mostrarAvisoInicial: Boolean,
-    actualizandoCatalogo: Boolean,
-    usandoCatalogoOficial: Boolean,
     onAbrirTramite: (Tramite) -> Unit,
     onAlternarFavorito: (Tramite) -> Unit,
     onAbrirPerfil: () -> Unit,
     onDescartarAviso: () -> Unit,
-    onActualizarCatalogo: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var consulta by rememberSaveable { mutableStateOf("") }
@@ -124,14 +116,6 @@ internal fun PantallaPrincipal(
                     nombreUsuario = nombreUsuario,
                     avatarId = avatarId,
                     onAbrirPerfil = onAbrirPerfil
-                )
-            }
-            item {
-                EstadoCatalogoPrincipal(
-                    actualizando = actualizandoCatalogo,
-                    usandoCatalogoOficial = usandoCatalogoOficial,
-                    cantidadTramites = tramites.size,
-                    onActualizar = onActualizarCatalogo
                 )
             }
             item {
@@ -285,57 +269,6 @@ private fun FiltrosInstitucion(
 }
 
 @Composable
-private fun EstadoCatalogoPrincipal(
-    actualizando: Boolean,
-    usandoCatalogoOficial: Boolean,
-    cantidadTramites: Int,
-    onActualizar: () -> Unit
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.shapes.small)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(10.dp)
-    ) {
-        if (actualizando) {
-            CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
-        } else {
-            Icon(
-                imageVector = if (usandoCatalogoOficial) Icons.Default.CloudDone else Icons.Default.CloudOff,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary
-            )
-        }
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = when {
-                    actualizando -> stringResource(R.string.home_catalog_updating)
-                    usandoCatalogoOficial -> stringResource(R.string.home_catalog_official)
-                    else -> stringResource(R.string.home_catalog_offline)
-                },
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = stringResource(R.string.home_catalog_count, cantidadTramites),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        if (!actualizando) {
-            OutlinedIconButton(onClick = onActualizar) {
-                Icon(
-                    imageVector = Icons.Default.Refresh,
-                    contentDescription = stringResource(R.string.home_cd_refresh_catalog)
-                )
-            }
-        }
-    }
-}
-
-@Composable
 private fun TarjetaTramitePrincipal(
     tramite: Tramite,
     esFavorito: Boolean,
@@ -471,15 +404,12 @@ private fun PantallaPrincipalPreview(mostrarAvisoInicial: Boolean = false) {
     PantallaPrincipal(
         nombreUsuario = "Alexis Rodriguez",
         avatarId = "avatar_1",
-        tramites = CatalogoTramites.tramites,
-        favoritos = setOf("licencia"),
+        tramites = tramitesDeVistaPrevia,
+        favoritos = setOf("gobec_12781"),
         mostrarAvisoInicial = mostrarAvisoInicial,
-        actualizandoCatalogo = false,
-        usandoCatalogoOficial = false,
         onAbrirTramite = {},
         onAlternarFavorito = {},
         onAbrirPerfil = {},
-        onDescartarAviso = {},
-        onActualizarCatalogo = {}
+        onDescartarAviso = {}
     )
 }
